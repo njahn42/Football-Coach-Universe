@@ -116,9 +116,7 @@ export default function ConferenceSetupScreen() {
         handleNext();
       }
     } else if (action === 'B') {
-      if (confIndex === 0) {
-        store.setScreen('conference-count');
-      }
+      handleBack();
     }
   });
 
@@ -158,12 +156,29 @@ export default function ConferenceSetupScreen() {
 
   if (!conference) return null;
 
+  // Unique-name check: another conference (different index) with the same non-empty name
+  const isDuplicateName =
+    conference.name.trim().length > 0 &&
+    store.conferences.some(
+      (c, i) => i !== confIndex && c.name.trim().toLowerCase() === conference.name.trim().toLowerCase()
+    );
+
   const handleNext = () => {
+    if (isDuplicateName) return;
     if (confIndex < (store.conferenceCount || 6) - 1) {
       store.setConferenceSetupIndex(confIndex + 1);
       setFocusedIndex(0);
     } else {
       store.setScreen('draft-teams');
+    }
+  };
+
+  const handleBack = () => {
+    if (confIndex > 0) {
+      store.setConferenceSetupIndex(confIndex - 1);
+      setFocusedIndex(0);
+    } else {
+      store.setScreen('conference-count');
     }
   };
 
@@ -188,14 +203,22 @@ export default function ConferenceSetupScreen() {
         <div className="flex flex-col gap-3">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Conference Name</label>
           <div className="flex items-center gap-4">
-            <input
-              ref={el => { refs.current[0] = el; }}
-              onFocus={() => setFocusedIndex(0)}
-              value={conference.name}
-              onChange={e => store.upsertConference(confIndex, { name: e.target.value })}
-              className="flex-1 bg-card border border-border rounded-lg px-4 py-3 text-xl font-bold text-foreground outline-none transition-colors focus:border-ring"
-            />
-            <div className="flex flex-col gap-2 min-w-[110px] items-center">
+            <div className="flex-1 flex flex-col gap-1">
+              <input
+                ref={el => { refs.current[0] = el; }}
+                onFocus={() => setFocusedIndex(0)}
+                value={conference.name}
+                onChange={e => store.upsertConference(confIndex, { name: e.target.value })}
+                className={`w-full bg-card border rounded-lg px-4 py-3 text-xl font-bold text-foreground outline-none transition-colors ${isDuplicateName ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-ring'}`}
+              />
+              {isDuplicateName && (
+                <p className="text-xs text-red-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                  Another conference already uses this name — each conference must be unique.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 min-w-[110px] items-center shrink-0">
               <div className="flex gap-2">
                 <ControllerBadge action="LB" active={focusedIndex === 0} />
                 <ControllerBadge action="RB" active={focusedIndex === 0} />
@@ -302,17 +325,24 @@ export default function ConferenceSetupScreen() {
 
       {/* Bottom Bar */}
       <div className="mt-8 flex justify-between items-center border-t border-border pt-5">
-        <div>
-          {confIndex === 0 && <ControllerBadge action="B" label="Back" active />}
-        </div>
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors outline-none"
+        >
+          <ControllerBadge action="B" active />
+          <span className="text-xs font-medium uppercase tracking-wider">
+            {confIndex > 0 ? 'Prev Conference' : 'Back'}
+          </span>
+        </button>
         <button
           ref={el => { refs.current[4] = el; }}
           onFocus={() => setFocusedIndex(4)}
           onClick={handleNext}
-          className="flex items-center gap-3 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-bold text-sm transition-all hover:brightness-110 active:brightness-90 outline-none"
+          disabled={isDuplicateName}
+          className={`flex items-center gap-3 px-6 py-2.5 rounded-lg font-bold text-sm transition-all outline-none ${isDuplicateName ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary text-primary-foreground hover:brightness-110 active:brightness-90'}`}
         >
           <span>{confIndex < (store.conferenceCount || 6) - 1 ? 'Next Conference' : 'Finish Setup'}</span>
-          <ControllerBadge action="A" active={focusedIndex === 4} />
+          <ControllerBadge action="A" active={focusedIndex === 4 && !isDuplicateName} />
         </button>
       </div>
 
