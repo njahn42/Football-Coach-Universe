@@ -110,11 +110,10 @@ export default function ConferenceSetupScreen() {
     }
   }, [conference, conferenceNames, confIndex, store]);
 
-  if (!conference) return null;
-
-  // ── Derived ────────────────────────────────────────────────────────────────
+  // ── Derived (safe to compute before null-guard — conference may be undefined) ──
 
   const isDuplicateName =
+    !!conference &&
     conference.name.trim().length > 0 &&
     store.conferences.some(
       (c, i) =>
@@ -123,7 +122,7 @@ export default function ConferenceSetupScreen() {
     );
 
   const handleNext = () => {
-    if (isDuplicateName) return;
+    if (!conference || isDuplicateName) return;
     if (confIndex < (store.conferenceCount || 6) - 1) {
       store.setConferenceSetupIndex(confIndex + 1);
       setFocusedIndex(0);
@@ -141,8 +140,9 @@ export default function ConferenceSetupScreen() {
     }
   };
 
-  // ── Gamepad ────────────────────────────────────────────────────────────────
+  // ── Gamepad — must be called unconditionally (no early return above this) ──
   useGamepad((action) => {
+    if (!conference) return;
     // City picker takes full priority
     if (isCityPickerOpen) {
       if (action === 'dpadDown') setHighlightedCityIndex(i => Math.min(filteredCities.length - 1, i + 1));
@@ -228,6 +228,9 @@ export default function ConferenceSetupScreen() {
       handleBack();
     }
   });
+
+  // ── Null-guard (after all hooks) ───────────────────────────────────────────
+  if (!conference) return null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
