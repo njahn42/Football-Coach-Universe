@@ -133,6 +133,85 @@ export interface LastAssignment {
   team: Team;
 }
 
+// ─── OOC Rivalries (Screen 7) ─────────────────────────────────────────────────
+
+export interface OOCRivalry {
+  teamAAbbr: string;
+  teamBAbbr: string;
+  /** Week slot in the season (1–15). */
+  preferredSlot: number;
+  /** Play cadence: 1 = every year, 2 = every other year, etc. (1–4). */
+  cadence: number;
+  /** Which year within the cadence to play (0 to cadence - 1). Auto-clamped. */
+  offset: number;
+}
+
+// ─── Bowl draft (Screen 8) ────────────────────────────────────────────────────
+
+export interface BowlTieIn {
+  slot1Primary?: string;  // conference name or '' for none
+  slot1Backup?: string;
+  slot2Primary?: string;
+  slot2Backup?: string;
+}
+
+export interface BowlSelection {
+  bowl: Bowl;
+  tieIn: BowlTieIn;
+}
+
+/** Maximum number of bowl games that can be selected. */
+export const MAX_BOWL_SELECTIONS = 40;
+
+// ─── Validation (Screen 9) ────────────────────────────────────────────────────
+
+export type ValidationSeverity = 'blocking' | 'warning';
+
+export interface ValidationResult {
+  id: string;
+  label: string;
+  pass: boolean;
+  errorMessage?: string;
+  severity: ValidationSeverity;
+  /** Screen to navigate to in order to fix this issue. */
+  screen?: ScreenId;
+}
+
+// ─── Export JSON shapes ───────────────────────────────────────────────────────
+
+/** Team as it appears in the exported JSON (adds rivalAbbreviation). */
+export interface ExportedTeam extends Team {
+  rivalAbbreviation: string;
+}
+
+export interface ExportedDivision {
+  name: string;
+  teams: ExportedTeam[];
+}
+
+export interface ExportedConference {
+  name: string;
+  prestigeLevel: number;
+  zipcode: string; // CCG city zipcode
+  divisions: ExportedDivision[];
+}
+
+export interface ExportedBowlGame {
+  name: string;
+  zipcode: string;
+  indoors: boolean;
+  tieIn?: BowlTieIn; // omitted if all slots are empty
+}
+
+export interface UniverseExport {
+  name: string;
+  startingYear: number;
+  startingMessage: string;
+  conferences: ExportedConference[];
+  bowlGames: ExportedBowlGame[];
+  oocRivalries?: OOCRivalry[]; // omitted entirely if empty
+}
+
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
 export type ScreenId =
@@ -141,7 +220,10 @@ export type ScreenId =
   | 'conference-setup'
   | 'draft-teams'
   | 'prestige-review'
-  | 'rivalries';  // placeholder — implemented in Task 3
+  | 'rivalries'
+  | 'ooc-rivalries'
+  | 'bowl-draft'
+  | 'review-export';
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 

@@ -7,6 +7,9 @@ import ConferenceSetupScreen from '@/screens/ConferenceSetupScreen';
 import DraftTeamsScreen      from '@/screens/DraftTeamsScreen';
 import PrestigeReviewScreen  from '@/screens/PrestigeReviewScreen';
 import RivalriesScreen       from '@/screens/RivalriesScreen';
+import OOCRivalriesScreen    from '@/screens/OOCRivalriesScreen';
+import BowlDraftScreen       from '@/screens/BowlDraftScreen';
+import ReviewExportScreen    from '@/screens/ReviewExportScreen';
 
 const SCREENS: Record<ScreenId, React.ComponentType> = {
   'universe-info':    UniverseInfoScreen,
@@ -15,6 +18,9 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
   'draft-teams':      DraftTeamsScreen,
   'prestige-review':  PrestigeReviewScreen,
   'rivalries':        RivalriesScreen,
+  'ooc-rivalries':    OOCRivalriesScreen,
+  'bowl-draft':       BowlDraftScreen,
+  'review-export':    ReviewExportScreen,
 };
 
 export default function App() {

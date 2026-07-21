@@ -7,8 +7,12 @@ import type {
   City,
   Team,
   LastAssignment,
+  OOCRivalry,
+  Bowl,
+  BowlSelection,
+  BowlTieIn,
 } from './types';
-import { numDivisions, teamsPerDivision, totalTeams, MAX_DRAFTED_TEAMS } from './types';
+import { numDivisions, teamsPerDivision, MAX_DRAFTED_TEAMS, MAX_BOWL_SELECTIONS } from './types';
 
 // ─── Name/message suggestions ─────────────────────────────────────────────────
 
@@ -30,42 +34,48 @@ export function buildMessageSuggestions(name: string, year: number): string[] {
   ];
 }
 
-// ─── Store state ──────────────────────────────────────────────────────────────
+// ─── Store state interface ─────────────────────────────────────────────────────
 
 interface UniverseState {
-  // Navigation
+  // ── Navigation ──────────────────────────────────────────────────────────────
   currentScreen: ScreenId;
   conferenceSetupIndex: number; // which conference is being configured (0-based)
 
-  // Screen 1: Universe Info
+  // ── Screen 1: Universe Info ──────────────────────────────────────────────────
   universeName: string;
   nameIndex: number;
   startingYear: number;
   startingMessage: string;
   messageIndex: number;
 
-  // Screen 2: Conference Count
+  // ── Screen 2: Conference Count ───────────────────────────────────────────────
   conferenceCount: 6 | 8 | 10 | null;
 
-  // Screen 3+: Conference drafts (one per conference)
+  // ── Screen 3+: Conference drafts (one per conference) ──────────────────────
   conferences: ConferenceDraft[];
 
-  // Screen 4: Team Pool (loaded once from teams.json)
+  // ── Screen 4: Team pool ──────────────────────────────────────────────────────
   allTeams: Team[];
-
-  // Screen 4: Last assignment — for undo within a session
   lastAssignment: LastAssignment | null;
 
-  // Screen 5: Manual prestige overrides (confId → prestige 1–10)
+  // ── Screen 5: Prestige overrides (confId → prestige 1–10) ─────────────────
   prestigeOverrides: Record<string, number>;
 
-  // ── Computed helpers ───────────────────────────────────────────────────────
-  /** Returns set of all drafted team abbreviations (used to exclude from pool). */
+  // ── Screen 6: Division rivalries (teamAbbr → rivalAbbr) ───────────────────
+  rivalries: Record<string, string>;
+
+  // ── Screen 7: OOC rivalries ──────────────────────────────────────────────────
+  oocRivalries: OOCRivalry[];
+
+  // ── Screen 8: Bowl selections ────────────────────────────────────────────────
+  allBowls: Bowl[];
+  selectedBowls: BowlSelection[];
+
+  // ── Computed helpers ─────────────────────────────────────────────────────────
   getDraftedTeamAbbrs: () => Set<string>;
-  /** Returns total drafted team count across all conferences. */
   getTotalDraftedCount: () => number;
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Actions ──────────────────────────────────────────────────────────────────
   setScreen: (screen: ScreenId) => void;
   setConferenceSetupIndex: (index: number) => void;
 
@@ -80,33 +90,37 @@ interface UniverseState {
   // Conference Count
   setConferenceCount: (count: 6 | 8 | 10) => void;
 
-  // Conference drafts (screens 3)
+  // Conference drafts
   upsertConference: (index: number, patch: Partial<ConferenceDraft>) => void;
   setConferenceLayout: (index: number, layout: DivisionLayout) => void;
   cycleConferenceDivisionNameSet: (index: number, direction?: 'next' | 'prev') => void;
 
-  // Team pool (screen 4)
+  // Team pool
   setAllTeams: (teams: Team[]) => void;
-
-  /**
-   * Assign a team to a specific slot.
-   * No-ops if: slot already filled, team already drafted, or cap reached.
-   * Saves the assignment as lastAssignment for undo.
-   */
   assignTeam: (team: Team, confIndex: number, divIndex: number, slotIndex: number) => void;
-
-  /**
-   * Remove the team from a specific slot (makes it empty again).
-   * Clears lastAssignment if it matches.
-   */
   removeTeamFromSlot: (confIndex: number, divIndex: number, slotIndex: number) => void;
-
-  /** Undo the last assignment, restoring the team to the pool. */
   undoLastAssignment: () => void;
 
-  // Prestige overrides (screen 5)
+  // Prestige
   setPrestigeOverride: (confId: string, level: number) => void;
   clearPrestigeOverride: (confId: string) => void;
+
+  // Division rivalries
+  setRivalry: (teamAbbr: string, rivalAbbr: string) => void;
+  clearRivalry: (teamAbbr: string) => void;
+  clearAllRivalries: () => void;
+
+  // OOC rivalries
+  addOOCRivalry: (entry: OOCRivalry) => void;
+  removeOOCRivalry: (index: number) => void;
+  updateOOCRivalry: (index: number, patch: Partial<OOCRivalry>) => void;
+
+  // Bowls
+  setAllBowls: (bowls: Bowl[]) => void;
+  addBowl: (bowl: Bowl) => void;
+  removeBowl: (index: number) => void;
+  reorderBowl: (fromIndex: number, toIndex: number) => void;
+  setBowlTieIn: (index: number, tieIn: Partial<BowlTieIn>) => void;
 
   // Reset
   resetDraft: () => void;
@@ -115,7 +129,6 @@ interface UniverseState {
 // ─── Initial state ─────────────────────────────────────────────────────────────
 
 const INITIAL_YEAR = new Date().getFullYear();
-const INITIAL_NAME_IDX = 0;
 const INITIAL_NAME = buildNameSuggestions(INITIAL_YEAR)[0];
 const INITIAL_MSG = buildMessageSuggestions(INITIAL_NAME, INITIAL_YEAR)[0];
 
@@ -123,7 +136,7 @@ const initialState = {
   currentScreen: 'universe-info' as ScreenId,
   conferenceSetupIndex: 0,
   universeName: INITIAL_NAME,
-  nameIndex: INITIAL_NAME_IDX,
+  nameIndex: 0,
   startingYear: INITIAL_YEAR,
   startingMessage: INITIAL_MSG,
   messageIndex: 0,
@@ -132,6 +145,10 @@ const initialState = {
   allTeams: [] as Team[],
   lastAssignment: null as LastAssignment | null,
   prestigeOverrides: {} as Record<string, number>,
+  rivalries: {} as Record<string, string>,
+  oocRivalries: [] as OOCRivalry[],
+  allBowls: [] as Bowl[],
+  selectedBowls: [] as BowlSelection[],
 };
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
@@ -141,7 +158,7 @@ export const useUniverseStore = create<UniverseState>()(
     (set, get) => ({
       ...initialState,
 
-      // ── Computed helpers ─────────────────────────────────────────────────────
+      // ── Computed helpers ────────────────────────────────────────────────────
       getDraftedTeamAbbrs: () => {
         const { conferences } = get();
         const abbrs = new Set<string>();
@@ -168,7 +185,7 @@ export const useUniverseStore = create<UniverseState>()(
         return count;
       },
 
-      // ── Navigation ───────────────────────────────────────────────────────────
+      // ── Navigation ──────────────────────────────────────────────────────────
       setScreen: (screen) => set({ currentScreen: screen }),
       setConferenceSetupIndex: (index) => set({ conferenceSetupIndex: index }),
 
@@ -244,7 +261,6 @@ export const useUniverseStore = create<UniverseState>()(
         const tpd = teamsPerDivision(layout);
         const divisions = Array.from({ length: n }, (_, i) => ({
           name: conf.divisions[i]?.name ?? '',
-          // Pre-fill slots with null so slot positions are stable
           teams: Array<null>(tpd).fill(null),
         }));
         get().upsertConference(index, { layout, divisions, divisionNameSetIndex: 0 });
@@ -259,78 +275,57 @@ export const useUniverseStore = create<UniverseState>()(
         get().upsertConference(index, { divisionNameSetIndex: next });
       },
 
-      // ── Team pool ─────────────────────────────────────────────────────────────
+      // ── Team pool ────────────────────────────────────────────────────────────
       setAllTeams: (teams) => set({ allTeams: teams }),
 
       assignTeam: (team, confIndex, divIndex, slotIndex) => {
         const { conferences, getTotalDraftedCount, getDraftedTeamAbbrs } = get();
-
-        // Guard: cap check
         if (getTotalDraftedCount() >= MAX_DRAFTED_TEAMS) return;
-
-        // Guard: team already drafted
         if (getDraftedTeamAbbrs().has(team.abbreviation)) return;
 
         const conf = conferences[confIndex];
         if (!conf) return;
-
         const division = conf.divisions[divIndex];
         if (!division) return;
 
         const tpd = teamsPerDivision(conf.layout);
-
-        // Ensure slot array is properly sized
         const currentTeams: (Team | null)[] = Array.from(
-          { length: tpd },
-          (_, i) => division.teams[i] ?? null,
+          { length: tpd }, (_, i) => division.teams[i] ?? null,
         );
-
-        // Guard: slot already filled
         if (currentTeams[slotIndex] != null) return;
-
         currentTeams[slotIndex] = team;
 
         const newDivisions = [...conf.divisions];
         newDivisions[divIndex] = { ...division, teams: currentTeams };
-
         const nextConferences = [...conferences];
         nextConferences[confIndex] = { ...conf, divisions: newDivisions };
 
-        set({
-          conferences: nextConferences,
-          lastAssignment: { confIndex, divIndex, slotIndex, team },
-        });
+        set({ conferences: nextConferences, lastAssignment: { confIndex, divIndex, slotIndex, team } });
       },
 
       removeTeamFromSlot: (confIndex, divIndex, slotIndex) => {
         const { conferences, lastAssignment } = get();
         const conf = conferences[confIndex];
         if (!conf) return;
-
         const division = conf.divisions[divIndex];
         if (!division) return;
 
         const tpd = teamsPerDivision(conf.layout);
         const currentTeams: (Team | null)[] = Array.from(
-          { length: tpd },
-          (_, i) => division.teams[i] ?? null,
+          { length: tpd }, (_, i) => division.teams[i] ?? null,
         );
-
         currentTeams[slotIndex] = null;
 
         const newDivisions = [...conf.divisions];
         newDivisions[divIndex] = { ...division, teams: currentTeams };
-
         const nextConferences = [...conferences];
         nextConferences[confIndex] = { ...conf, divisions: newDivisions };
 
-        // Clear lastAssignment if it matches
         const newLast =
           lastAssignment?.confIndex === confIndex &&
           lastAssignment?.divIndex === divIndex &&
           lastAssignment?.slotIndex === slotIndex
-            ? null
-            : lastAssignment;
+            ? null : lastAssignment;
 
         set({ conferences: nextConferences, lastAssignment: newLast });
       },
@@ -338,35 +333,119 @@ export const useUniverseStore = create<UniverseState>()(
       undoLastAssignment: () => {
         const { lastAssignment } = get();
         if (!lastAssignment) return;
-        const { confIndex, divIndex, slotIndex } = lastAssignment;
-        get().removeTeamFromSlot(confIndex, divIndex, slotIndex);
+        get().removeTeamFromSlot(lastAssignment.confIndex, lastAssignment.divIndex, lastAssignment.slotIndex);
         set({ lastAssignment: null });
       },
 
-      // ── Prestige overrides ───────────────────────────────────────────────────
+      // ── Prestige ─────────────────────────────────────────────────────────────
       setPrestigeOverride: (confId, level) => {
         const { prestigeOverrides } = get();
         set({ prestigeOverrides: { ...prestigeOverrides, [confId]: level } });
       },
 
       clearPrestigeOverride: (confId) => {
-        const { prestigeOverrides } = get();
-        const next = { ...prestigeOverrides };
+        const next = { ...get().prestigeOverrides };
         delete next[confId];
         set({ prestigeOverrides: next });
       },
 
-      // ── Reset ─────────────────────────────────────────────────────────────────
+      // ── Division rivalries ───────────────────────────────────────────────────
+      setRivalry: (teamAbbr, rivalAbbr) => {
+        const { rivalries } = get();
+        set({ rivalries: { ...rivalries, [teamAbbr]: rivalAbbr } });
+      },
+
+      clearRivalry: (teamAbbr) => {
+        const next = { ...get().rivalries };
+        delete next[teamAbbr];
+        set({ rivalries: next });
+      },
+
+      clearAllRivalries: () => set({ rivalries: {} }),
+
+      // ── OOC rivalries ────────────────────────────────────────────────────────
+      addOOCRivalry: (entry) => {
+        const { oocRivalries } = get();
+        // Validate: no duplicates (either order)
+        const dupe = oocRivalries.some(
+          r =>
+            (r.teamAAbbr === entry.teamAAbbr && r.teamBAbbr === entry.teamBAbbr) ||
+            (r.teamAAbbr === entry.teamBAbbr && r.teamBAbbr === entry.teamAAbbr),
+        );
+        if (dupe) return;
+        // Validate: teamA ≠ teamB
+        if (entry.teamAAbbr === entry.teamBAbbr) return;
+        // Clamp offset
+        const clamped = { ...entry, offset: Math.min(entry.offset, entry.cadence - 1) };
+        set({ oocRivalries: [...oocRivalries, clamped] });
+      },
+
+      removeOOCRivalry: (index) => {
+        const { oocRivalries } = get();
+        set({ oocRivalries: oocRivalries.filter((_, i) => i !== index) });
+      },
+
+      updateOOCRivalry: (index, patch) => {
+        const { oocRivalries } = get();
+        const existing = oocRivalries[index];
+        if (!existing) return;
+        const updated = { ...existing, ...patch };
+        // Auto-clamp offset when cadence changes
+        updated.offset = Math.min(updated.offset, Math.max(0, updated.cadence - 1));
+        const next = [...oocRivalries];
+        next[index] = updated;
+        set({ oocRivalries: next });
+      },
+
+      // ── Bowls ────────────────────────────────────────────────────────────────
+      setAllBowls: (bowls) => set({ allBowls: bowls }),
+
+      addBowl: (bowl) => {
+        const { selectedBowls } = get();
+        if (selectedBowls.length >= MAX_BOWL_SELECTIONS) return;
+        if (selectedBowls.some(s => s.bowl.name === bowl.name)) return;
+        set({ selectedBowls: [...selectedBowls, { bowl, tieIn: {} }] });
+      },
+
+      removeBowl: (index) => {
+        const { selectedBowls } = get();
+        set({ selectedBowls: selectedBowls.filter((_, i) => i !== index) });
+      },
+
+      reorderBowl: (fromIndex, toIndex) => {
+        const { selectedBowls } = get();
+        if (fromIndex === toIndex) return;
+        const next = [...selectedBowls];
+        const [item] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, item);
+        set({ selectedBowls: next });
+      },
+
+      setBowlTieIn: (index, tieIn) => {
+        const { selectedBowls } = get();
+        const entry = selectedBowls[index];
+        if (!entry) return;
+        const next = [...selectedBowls];
+        next[index] = { ...entry, tieIn: { ...entry.tieIn, ...tieIn } };
+        set({ selectedBowls: next });
+      },
+
+      // ── Reset ────────────────────────────────────────────────────────────────
       resetDraft: () => set(initialState),
     }),
     {
       name: 'fccd-universe-draft',
-      // Exclude transient/re-fetchable state from localStorage persistence
       partialize: (state) => {
+        // Exclude transient/re-fetchable data from localStorage
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { allTeams, lastAssignment, getDraftedTeamAbbrs, getTotalDraftedCount, ...persisted } = state;
+        const {
+          allTeams, lastAssignment,
+          allBowls,
+          getDraftedTeamAbbrs, getTotalDraftedCount,
+          ...persisted
+        } = state;
         return persisted;
       },
-    }
+    },
   ),
 );
