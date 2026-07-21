@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { Combobox } from '@/components/Combobox';
+import type { ComboboxHandle } from '@/components/Combobox';
 import type { DivisionLayout, City } from '@/types';
 import { LAYOUT_LABELS, numDivisions, totalTeams, teamsPerDivision } from '@/types';
 
@@ -11,121 +13,75 @@ export default function ConferenceSetupScreen() {
   const store = useUniverseStore();
   const confIndex = store.conferenceSetupIndex;
   const conference = store.conferences[confIndex];
-  
+
   const [conferenceNames, setConferenceNames] = useState<string[]>([]);
-  const [divisionNames, setDivisionNames] = useState<{ paired: string[][], quad: string[][] }>({ paired: [], quad: [] });
+  const [divisionNames, setDivisionNames] = useState<{ paired: string[][], quad: string[][] }>({
+    paired: [],
+    quad: [],
+  });
   const [cities, setCities] = useState<City[]>([]);
-  
-  const [focusedIndex, setFocusedIndex] = useState(0); 
-  // 0: Name, 1: Layout, 2: Div Names, 3: City, 4: Next/Done
+
+  // focusedIndex: 0=Name, 1=Layout, 2=DivNames, 3=City, 4=Next/Done
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  // Which division slot is active when focusedIndex===2
+  const [focusedDivIndex, setFocusedDivIndex] = useState(0);
+
   const [isCityPickerOpen, setIsCityPickerOpen] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [highlightedCityIndex, setHighlightedCityIndex] = useState(0);
 
+  // Refs for non-combobox focusable elements
   const refs = useRef<(HTMLElement | null)[]>([]);
   const cityInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Combobox handles
+  const confNameComboRef = useRef<ComboboxHandle>(null);
+  const divNameComboRefs = useRef<(ComboboxHandle | null)[]>([]);
+
   useEffect(() => {
     fetch('/data/conference_names.json').then(r => r.json()).then(setConferenceNames);
     fetch('/data/division_names.json').then(r => r.json()).then(setDivisionNames);
     fetch('/data/cities.json').then(r => r.json()).then(setCities);
   }, []);
 
-  // Sync focus
+  // Flat, deduplicated list of all individual division name strings
+  const flatDivisionNames = useMemo(() => {
+    const all = [
+      ...divisionNames.paired.flat(),
+      ...divisionNames.quad.flat(),
+    ];
+    return [...new Set(all)].sort();
+  }, [divisionNames]);
+
+  const numDivs = conference ? numDivisions(conference.layout) : 1;
+
+  const filteredCities = cities.filter(
+    c =>
+      c.cityName.toLowerCase().includes(citySearch.toLowerCase()) ||
+      c.stadium.toLowerCase().includes(citySearch.toLowerCase()),
+  );
+
+  // ── Focus sync ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (isCityPickerOpen) {
       cityInputRef.current?.focus();
+    } else if (focusedIndex === 0) {
+      confNameComboRef.current?.focus();
+    } else if (focusedIndex === 2 && numDivs > 1) {
+      divNameComboRefs.current[focusedDivIndex]?.focus();
     } else {
       refs.current[focusedIndex]?.focus();
     }
-  }, [focusedIndex, isCityPickerOpen]);
+  }, [focusedIndex, isCityPickerOpen, focusedDivIndex, numDivs]);
 
-  // Derived state for Division sets
-  const numDivs = conference ? numDivisions(conference.layout) : 1;
-  const availableDivisionSets = numDivs === 2 ? divisionNames.paired : (numDivs === 4 ? divisionNames.quad : []);
-  
-  const filteredCities = cities.filter(c => 
-    c.cityName.toLowerCase().includes(citySearch.toLowerCase()) || 
-    c.stadium.toLowerCase().includes(citySearch.toLowerCase())
-  );
-
-  useGamepad((action) => {
-    if (isCityPickerOpen) {
-      if (action === 'dpadDown') {
-        setHighlightedCityIndex(i => Math.min(filteredCities.length - 1, i + 1));
-      } else if (action === 'dpadUp') {
-        setHighlightedCityIndex(i => Math.max(0, i - 1));
-      } else if (action === 'A') {
-        const selected = filteredCities[highlightedCityIndex];
-        if (selected) {
-          store.upsertConference(confIndex, { ccgCity: selected });
-          setIsCityPickerOpen(false);
-          setFocusedIndex(4); // Move to Next
-        }
-      } else if (action === 'B') {
-        setIsCityPickerOpen(false);
-        setFocusedIndex(3);
-      }
-      return;
-    }
-
-    if (action === 'dpadDown') {
-      setFocusedIndex(i => {
-        let next = i + 1;
-        if (next === 2 && numDivs === 1) next = 3; // skip div names if 1x10
-        return Math.min(4, next);
-      });
-    } else if (action === 'dpadUp') {
-      setFocusedIndex(i => {
-        let prev = i - 1;
-        if (prev === 2 && numDivs === 1) prev = 1;
-        return Math.max(0, prev);
-      });
-    } else if (action === 'dpadRight' && focusedIndex === 1) {
-      if (conference) {
-        const curr = LAYOUTS.indexOf(conference.layout);
-        const next = LAYOUTS[Math.min(LAYOUTS.length - 1, curr + 1)];
-        store.setConferenceLayout(confIndex, next);
-      }
-    } else if (action === 'dpadLeft' && focusedIndex === 1) {
-      if (conference) {
-        const curr = LAYOUTS.indexOf(conference.layout);
-        const prev = LAYOUTS[Math.max(0, curr - 1)];
-        store.setConferenceLayout(confIndex, prev);
-      }
-    } else if (action === 'RB') {
-      if (focusedIndex === 0) {
-        const curr = conferenceNames.indexOf(conference.name);
-        const next = conferenceNames[(curr + 1) % conferenceNames.length] || conferenceNames[0];
-        store.upsertConference(confIndex, { name: next });
-      } else if (focusedIndex === 2 && numDivs > 1) {
-        store.cycleConferenceDivisionNameSet(confIndex, 'next');
-      }
-    } else if (action === 'LB') {
-      if (focusedIndex === 0) {
-        const curr = conferenceNames.indexOf(conference.name);
-        const prev = conferenceNames[(curr - 1 + conferenceNames.length) % conferenceNames.length] || conferenceNames[0];
-        store.upsertConference(confIndex, { name: prev });
-      } else if (focusedIndex === 2 && numDivs > 1) {
-        store.cycleConferenceDivisionNameSet(confIndex, 'prev');
-      }
-    } else if (action === 'A') {
-      if (focusedIndex === 3) {
-        setIsCityPickerOpen(true);
-      } else if (focusedIndex === 4) {
-        handleNext();
-      }
-    } else if (action === 'B') {
-      handleBack();
-    }
-  });
-
-  // Re-sync highlighted city when search changes
+  // Reset div slot focus when switching away from section 2
   useEffect(() => {
-    setHighlightedCityIndex(0);
-  }, [citySearch]);
+    if (focusedIndex !== 2) setFocusedDivIndex(0);
+  }, [focusedIndex]);
 
-  // Scroll active city into view
+  // ── City search helpers ────────────────────────────────────────────────────
+  useEffect(() => { setHighlightedCityIndex(0); }, [citySearch]);
+
   useEffect(() => {
     if (isCityPickerOpen) {
       const el = document.getElementById(`city-item-${highlightedCityIndex}`);
@@ -133,13 +89,13 @@ export default function ConferenceSetupScreen() {
     }
   }, [highlightedCityIndex, isCityPickerOpen]);
 
-  // Initialize conference draft if it doesn't exist yet (e.g. just entered from ConferenceCountScreen)
+  // ── Conference initialization ──────────────────────────────────────────────
   useEffect(() => {
     if (!conference) {
       store.upsertConference(confIndex, {
         id: `conf-${confIndex}`,
         name: '',
-        ccgCity: null as unknown as import('@/types').City,
+        ccgCity: null as unknown as City,
         layout: '2x6',
         divisionNameSetIndex: 0,
         divisions: [{ name: '', teams: [] }, { name: '', teams: [] }],
@@ -147,7 +103,7 @@ export default function ConferenceSetupScreen() {
     }
   }, [conference, confIndex, store]);
 
-  // Load a default name if empty
+  // Load a default conference name if the field is empty
   useEffect(() => {
     if (conference && !conference.name && conferenceNames.length > 0) {
       store.upsertConference(confIndex, { name: conferenceNames[0] });
@@ -156,11 +112,14 @@ export default function ConferenceSetupScreen() {
 
   if (!conference) return null;
 
-  // Unique-name check: another conference (different index) with the same non-empty name
+  // ── Derived ────────────────────────────────────────────────────────────────
+
   const isDuplicateName =
     conference.name.trim().length > 0 &&
     store.conferences.some(
-      (c, i) => i !== confIndex && c.name.trim().toLowerCase() === conference.name.trim().toLowerCase()
+      (c, i) =>
+        i !== confIndex &&
+        c.name.trim().toLowerCase() === conference.name.trim().toLowerCase(),
     );
 
   const handleNext = () => {
@@ -182,34 +141,136 @@ export default function ConferenceSetupScreen() {
     }
   };
 
-  const currentDivSet = availableDivisionSets.length > 0 
-    ? availableDivisionSets[conference.divisionNameSetIndex % availableDivisionSets.length] 
-    : [];
+  // ── Gamepad ────────────────────────────────────────────────────────────────
+  useGamepad((action) => {
+    // City picker takes full priority
+    if (isCityPickerOpen) {
+      if (action === 'dpadDown') setHighlightedCityIndex(i => Math.min(filteredCities.length - 1, i + 1));
+      else if (action === 'dpadUp') setHighlightedCityIndex(i => Math.max(0, i - 1));
+      else if (action === 'A') {
+        const selected = filteredCities[highlightedCityIndex];
+        if (selected) {
+          store.upsertConference(confIndex, { ccgCity: selected });
+          setIsCityPickerOpen(false);
+          setFocusedIndex(4);
+        }
+      } else if (action === 'B') {
+        setIsCityPickerOpen(false);
+        setFocusedIndex(3);
+      }
+      return;
+    }
+
+    // Conference name dropdown intercept
+    if (focusedIndex === 0 && confNameComboRef.current?.isDropdownOpen()) {
+      if (action === 'dpadDown') confNameComboRef.current.navigate('down');
+      else if (action === 'dpadUp') confNameComboRef.current.navigate('up');
+      else if (action === 'A') confNameComboRef.current.confirm();
+      else if (action === 'B') confNameComboRef.current.close();
+      return;
+    }
+
+    // Division name dropdown intercept
+    if (focusedIndex === 2 && numDivs > 1) {
+      const activeCombo = divNameComboRefs.current[focusedDivIndex];
+      if (activeCombo?.isDropdownOpen()) {
+        if (action === 'dpadDown') activeCombo.navigate('down');
+        else if (action === 'dpadUp') activeCombo.navigate('up');
+        else if (action === 'A') activeCombo.confirm();
+        else if (action === 'B') activeCombo.close();
+        return;
+      }
+      // No dropdown open — navigate within the division slots or between sections
+      if (action === 'dpadLeft') setFocusedDivIndex(i => Math.max(0, i - 1));
+      else if (action === 'dpadRight') setFocusedDivIndex(i => Math.min(numDivs - 1, i + 1));
+      else if (action === 'dpadUp') setFocusedIndex(1);
+      else if (action === 'dpadDown') setFocusedIndex(3);
+      else if (action === 'B') handleBack();
+      return;
+    }
+
+    // Normal section navigation
+    if (action === 'dpadDown') {
+      setFocusedIndex(i => {
+        let next = i + 1;
+        if (next === 2 && numDivs === 1) next = 3; // skip div names for 1x10
+        return Math.min(4, next);
+      });
+    } else if (action === 'dpadUp') {
+      setFocusedIndex(i => {
+        let prev = i - 1;
+        if (prev === 2 && numDivs === 1) prev = 1;
+        return Math.max(0, prev);
+      });
+    } else if (action === 'dpadRight' && focusedIndex === 1) {
+      const curr = LAYOUTS.indexOf(conference.layout);
+      const next = LAYOUTS[Math.min(LAYOUTS.length - 1, curr + 1)];
+      store.setConferenceLayout(confIndex, next);
+    } else if (action === 'dpadLeft' && focusedIndex === 1) {
+      const curr = LAYOUTS.indexOf(conference.layout);
+      const prev = LAYOUTS[Math.max(0, curr - 1)];
+      store.setConferenceLayout(confIndex, prev);
+    } else if (action === 'RB' && focusedIndex === 0) {
+      // Cycle conference name list when dropdown is closed
+      const curr = conferenceNames.indexOf(conference.name);
+      const next = conferenceNames[(curr + 1) % conferenceNames.length] || conferenceNames[0];
+      store.upsertConference(confIndex, { name: next });
+    } else if (action === 'LB' && focusedIndex === 0) {
+      const curr = conferenceNames.indexOf(conference.name);
+      const prev =
+        conferenceNames[(curr - 1 + conferenceNames.length) % conferenceNames.length] ||
+        conferenceNames[0];
+      store.upsertConference(confIndex, { name: prev });
+    } else if (action === 'A') {
+      if (focusedIndex === 3) setIsCityPickerOpen(true);
+      else if (focusedIndex === 4) handleNext();
+    } else if (action === 'B') {
+      handleBack();
+    }
+  });
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen flex flex-col px-8 py-10 max-w-5xl mx-auto">
-      {/* Breadcrumb / Progress */}
+      {/* Header */}
       <div className="mb-8 pb-5 border-b border-border">
-        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">Step 3 of 3</p>
+        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">
+          Step 3 of 3
+        </p>
         <h1 className="text-2xl font-bold text-foreground">
           Conference {confIndex + 1}
-          <span className="text-muted-foreground font-normal text-lg ml-2">of {store.conferenceCount}</span>
+          <span className="text-muted-foreground font-normal text-lg ml-2">
+            of {store.conferenceCount}
+          </span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure name, division structure, and championship city.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Configure name, division structure, and championship city.
+        </p>
       </div>
 
       <div className="flex-1 flex flex-col gap-6 relative">
-        {/* Name */}
-        <div className="flex flex-col gap-3">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Conference Name</label>
-          <div className="flex items-center gap-4">
+
+        {/* ── Conference Name ── */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Conference Name
+          </label>
+          <div className="flex items-start gap-4">
             <div className="flex-1 flex flex-col gap-1">
-              <input
-                ref={el => { refs.current[0] = el; }}
-                onFocus={() => setFocusedIndex(0)}
+              <Combobox
+                ref={confNameComboRef}
                 value={conference.name}
-                onChange={e => store.upsertConference(confIndex, { name: e.target.value })}
-                className={`w-full bg-card border rounded-lg px-4 py-3 text-xl font-bold text-foreground outline-none transition-colors ${isDuplicateName ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-ring'}`}
+                onChange={name => store.upsertConference(confIndex, { name })}
+                options={conferenceNames}
+                placeholder="Type or cycle a conference name…"
+                error={isDuplicateName}
+                onFocus={() => setFocusedIndex(0)}
+                inputClassName={`w-full bg-card border rounded-lg px-4 py-3 text-xl font-bold text-foreground outline-none transition-colors ${
+                  isDuplicateName
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-border focus:border-ring'
+                }`}
               />
               {isDuplicateName && (
                 <p className="text-xs text-red-400 flex items-center gap-1.5">
@@ -218,19 +279,23 @@ export default function ConferenceSetupScreen() {
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-2 min-w-[110px] items-center shrink-0">
+            <div className="flex flex-col gap-2 min-w-[110px] items-center shrink-0 pt-1">
               <div className="flex gap-2">
                 <ControllerBadge action="LB" active={focusedIndex === 0} />
                 <ControllerBadge action="RB" active={focusedIndex === 0} />
               </div>
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Cycle Name</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                Cycle
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Layout */}
-        <div className="flex flex-col gap-3">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Division Layout</label>
+        {/* ── Division Layout ── */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Division Layout
+          </label>
           <div className="flex items-center gap-4">
             <div className="flex-1 flex flex-col">
               <div
@@ -243,18 +308,28 @@ export default function ConferenceSetupScreen() {
                   <div
                     key={layout}
                     onClick={() => store.setConferenceLayout(confIndex, layout)}
-                    className={`flex-1 text-center py-2.5 rounded-md font-bold text-sm cursor-pointer transition-all ${conference.layout === layout ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                    className={`flex-1 text-center py-2.5 rounded-md font-bold text-sm cursor-pointer transition-all ${
+                      conference.layout === layout
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
                   >
                     {LAYOUT_LABELS[layout]}
                   </div>
                 ))}
               </div>
 
-              {/* Layout Stats */}
+              {/* Stats row */}
               <div className="flex gap-6 items-center px-4 py-2 mt-2 bg-muted/30 rounded-lg text-xs font-mono text-muted-foreground">
-                <span>Total <strong className="text-foreground ml-1">{totalTeams(conference.layout)}</strong></span>
-                <span>Divisions <strong className="text-foreground ml-1">{numDivs}</strong></span>
-                <span>Per Division <strong className="text-foreground ml-1">{teamsPerDivision(conference.layout)}</strong></span>
+                <span>
+                  Total <strong className="text-foreground ml-1">{totalTeams(conference.layout)}</strong>
+                </span>
+                <span>
+                  Divisions <strong className="text-foreground ml-1">{numDivs}</strong>
+                </span>
+                <span>
+                  Per Division <strong className="text-foreground ml-1">{teamsPerDivision(conference.layout)}</strong>
+                </span>
               </div>
             </div>
 
@@ -263,41 +338,64 @@ export default function ConferenceSetupScreen() {
                 <ControllerBadge action="dpadLeft" active={focusedIndex === 1} />
                 <ControllerBadge action="dpadRight" active={focusedIndex === 1} />
               </div>
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Layout</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                Layout
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Division Names */}
+        {/* ── Division Names (per-slot comboboxes) ── */}
         {numDivs > 1 && (
-          <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Division Names</label>
-            <div className="flex items-center gap-4">
-              <button
-                ref={el => { refs.current[2] = el; }}
-                onFocus={() => setFocusedIndex(2)}
-                className="flex-1 bg-card border border-border rounded-lg px-4 py-3 outline-none transition-colors focus:border-ring flex gap-3 text-left"
-              >
-                {currentDivSet.map((name, i) => (
-                  <div key={i} className="flex-1 bg-muted/40 py-2.5 px-3 rounded-md border border-border/50 text-center text-sm font-semibold text-foreground">
-                    {name}
+          <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Division Names
+            </label>
+            <div className="flex items-start gap-4">
+              <div className="flex-1 flex gap-3">
+                {conference.divisions.map((div, divIdx) => (
+                  <div key={divIdx} className="flex-1 flex flex-col gap-1">
+                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                      Division {divIdx + 1}
+                    </span>
+                    <Combobox
+                      ref={el => { divNameComboRefs.current[divIdx] = el; }}
+                      value={div.name}
+                      onChange={name => store.setDivisionName(confIndex, divIdx, name)}
+                      options={flatDivisionNames}
+                      placeholder={`e.g. East…`}
+                      onFocus={() => {
+                        setFocusedIndex(2);
+                        setFocusedDivIndex(divIdx);
+                      }}
+                      inputClassName={`w-full bg-card border rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground outline-none transition-colors ${
+                        focusedIndex === 2 && focusedDivIndex === divIdx
+                          ? 'border-ring'
+                          : 'border-border focus:border-ring'
+                      }`}
+                    />
                   </div>
                 ))}
-              </button>
-              <div className="flex flex-col gap-2 min-w-[110px] items-center">
+              </div>
+
+              <div className="flex flex-col gap-2 min-w-[110px] items-center shrink-0 pt-5">
                 <div className="flex gap-2">
-                  <ControllerBadge action="LB" active={focusedIndex === 2} />
-                  <ControllerBadge action="RB" active={focusedIndex === 2} />
+                  <ControllerBadge action="dpadLeft" active={focusedIndex === 2} />
+                  <ControllerBadge action="dpadRight" active={focusedIndex === 2} />
                 </div>
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Cycle Set</span>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                  Slot
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        {/* CCG City */}
-        <div className="flex flex-col gap-3">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Championship Host City</label>
+        {/* ── Championship Host City ── */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Championship Host City
+          </label>
           <div className="flex items-center gap-4">
             <button
               ref={el => { refs.current[3] = el; }}
@@ -307,10 +405,16 @@ export default function ConferenceSetupScreen() {
             >
               {conference.ccgCity ? (
                 <div>
-                  <div className="text-base font-semibold text-foreground">{conference.ccgCity.cityName}</div>
+                  <div className="text-base font-semibold text-foreground">
+                    {conference.ccgCity.cityName}
+                  </div>
                   <div className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
                     <span>{conference.ccgCity.stadium}</span>
-                    {conference.ccgCity.indoors && <span className="bg-primary/20 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-bold tracking-wider">Dome</span>}
+                    {conference.ccgCity.indoors && (
+                      <span className="bg-primary/20 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-bold tracking-wider">
+                        Dome
+                      </span>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -323,7 +427,7 @@ export default function ConferenceSetupScreen() {
 
       </div>
 
-      {/* Bottom Bar */}
+      {/* ── Bottom Bar ── */}
       <div className="mt-8 flex justify-between items-center border-t border-border pt-5">
         <button
           onClick={handleBack}
@@ -339,14 +443,20 @@ export default function ConferenceSetupScreen() {
           onFocus={() => setFocusedIndex(4)}
           onClick={handleNext}
           disabled={isDuplicateName}
-          className={`flex items-center gap-3 px-6 py-2.5 rounded-lg font-bold text-sm transition-all outline-none ${isDuplicateName ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary text-primary-foreground hover:brightness-110 active:brightness-90'}`}
+          className={`flex items-center gap-3 px-6 py-2.5 rounded-lg font-bold text-sm transition-all outline-none ${
+            isDuplicateName
+              ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
+              : 'bg-primary text-primary-foreground hover:brightness-110 active:brightness-90'
+          }`}
         >
-          <span>{confIndex < (store.conferenceCount || 6) - 1 ? 'Next Conference' : 'Finish Setup'}</span>
+          <span>
+            {confIndex < (store.conferenceCount || 6) - 1 ? 'Next Conference' : 'Finish Setup'}
+          </span>
           <ControllerBadge action="A" active={focusedIndex === 4 && !isDuplicateName} />
         </button>
       </div>
 
-      {/* City Picker Modal overlay */}
+      {/* ── City Picker Modal ── */}
       {isCityPickerOpen && (
         <div className="absolute inset-0 bg-background/97 backdrop-blur-sm z-50 flex flex-col p-8">
           <div className="flex items-center gap-4 mb-6 pb-5 border-b border-border">
@@ -369,7 +479,11 @@ export default function ConferenceSetupScreen() {
                 <div
                   id={`city-item-${idx}`}
                   key={`${city.cityName}-${city.stadium}`}
-                  className={`px-4 py-3 rounded-lg flex items-center justify-between cursor-pointer border transition-colors ${highlightedCityIndex === idx ? 'bg-ring/15 border-ring/50 text-foreground' : 'hover:bg-muted/40 text-foreground border-transparent'}`}
+                  className={`px-4 py-3 rounded-lg flex items-center justify-between cursor-pointer border transition-colors ${
+                    highlightedCityIndex === idx
+                      ? 'bg-ring/15 border-ring/50 text-foreground'
+                      : 'hover:bg-muted/40 text-foreground border-transparent'
+                  }`}
                   onMouseEnter={() => setHighlightedCityIndex(idx)}
                   onClick={() => {
                     store.upsertConference(confIndex, { ccgCity: city });
@@ -379,7 +493,7 @@ export default function ConferenceSetupScreen() {
                 >
                   <div>
                     <div className="font-semibold text-base">{city.cityName}</div>
-                    <div className={`text-sm mt-0.5 ${highlightedCityIndex === idx ? 'text-muted-foreground' : 'text-muted-foreground'}`}>{city.stadium}</div>
+                    <div className="text-sm mt-0.5 text-muted-foreground">{city.stadium}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     {city.indoors && (
@@ -392,7 +506,9 @@ export default function ConferenceSetupScreen() {
                 </div>
               ))}
               {filteredCities.length === 0 && (
-                <div className="py-12 text-center text-muted-foreground text-sm">No cities found.</div>
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  No cities found.
+                </div>
               )}
             </div>
           </div>

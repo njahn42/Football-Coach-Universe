@@ -94,6 +94,7 @@ interface UniverseState {
   upsertConference: (index: number, patch: Partial<ConferenceDraft>) => void;
   setConferenceLayout: (index: number, layout: DivisionLayout) => void;
   cycleConferenceDivisionNameSet: (index: number, direction?: 'next' | 'prev') => void;
+  setDivisionName: (confIndex: number, divIndex: number, name: string) => void;
 
   // Team pool
   setAllTeams: (teams: Team[]) => void;
@@ -273,6 +274,18 @@ export const useUniverseStore = create<UniverseState>()(
         const current = conf.divisionNameSetIndex ?? 0;
         const next = direction === 'next' ? current + 1 : Math.max(0, current - 1);
         get().upsertConference(index, { divisionNameSetIndex: next });
+      },
+
+      setDivisionName: (confIndex, divIndex, name) => {
+        const { conferences } = get();
+        const conf = conferences[confIndex];
+        if (!conf) return;
+        const newDivisions = [...conf.divisions];
+        if (!newDivisions[divIndex]) return;
+        newDivisions[divIndex] = { ...newDivisions[divIndex], name };
+        const next = [...conferences];
+        next[confIndex] = { ...conf, divisions: newDivisions };
+        set({ conferences: next });
       },
 
       // ── Team pool ────────────────────────────────────────────────────────────
