@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+  --font-mono: 'Space Mono', 'Menlo', monospace;
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* Control Room Aesthetic - Deep Navy with Amber Accent */
+  color-scheme: dark;
+  
+  --background: 224 71% 4%; /* #020617 */
+  --foreground: 210 40% 98%;
+
+  --card: 222 47% 11%; /* #0f172a */
+  --card-foreground: 210 40% 98%;
+
+  --border: 215 28% 22%;
+  --input: 215 28% 22%;
+
+  --primary: 43 96% 56%; /* #facc15 */
+  --primary-foreground: 224 71% 4%;
+
+  --ring: 43 96% 56%;
+
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20.2% 65.1%;
+
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  --border: 215 28% 22%;
+  --input: 215 28% 22%;
+  --primary: 43 96% 56%;
+  --primary-foreground: 224 71% 4%;
+  --ring: 43 96% 56%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20.2% 65.1%;
+}
+
+@layer base {
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Gamepad custom focus ring */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 20px 0px hsla(var(--ring), 0.3);
+    transition: outline 0.1s ease-out, box-shadow 0.1s ease-out;
+  }
+  
+  /* Match outline border-radius to the element for cleaner rings */
+  .rounded-xl:focus-visible { border-radius: var(--radius-xl); }
+  .rounded-2xl:focus-visible { border-radius: calc(var(--radius) + 8px); }
+  .rounded-lg:focus-visible { border-radius: var(--radius-lg); }
+  
+  /* Console-style subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border));
+  }
+}

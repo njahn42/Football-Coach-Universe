@@ -1,0 +1,190 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { useUniverseStore } from '@/store';
+import { usePrestige, findPrestigeConflict } from '@/hooks/usePrestige';
+import { useGamepad } from '@/hooks/useGamepad';
+import { ControllerBadge } from '@/components/ControllerBadge';
+
+function getPrestigeColorClass(level: number) {
+  if (level >= 8) return 'text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]';
+  if (level >= 5) return 'text-teal-400 drop-shadow-[0_0_15px_rgba(45,212,191,0.5)]';
+  return 'text-orange-700/90 drop-shadow-[0_0_15px_rgba(194,65,12,0.4)]';
+}
+
+export default function PrestigeReviewScreen() {
+  const conferences = useUniverseStore(s => s.conferences);
+  const prestigeOverrides = useUniverseStore(s => s.prestigeOverrides);
+  const setPrestigeOverride = useUniverseStore(s => s.setPrestigeOverride);
+  const clearPrestigeOverride = useUniverseStore(s => s.clearPrestigeOverride);
+  const setScreen = useUniverseStore(s => s.setScreen);
+
+  const prestigeInfos = usePrestige(conferences, prestigeOverrides);
+
+  const [focusIndex, setFocusIndex] = useState(0);
+  const refs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    refs.current[focusIndex]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [focusIndex]);
+
+  useGamepad((action) => {
+    if (action === 'dpadUp') {
+      setFocusIndex(i => Math.max(0, i - 1));
+    } else if (action === 'dpadDown') {
+      setFocusIndex(i => Math.min(prestigeInfos.length - 1, i + 1));
+    } else if (action === 'dpadLeft') {
+      const info = prestigeInfos[focusIndex];
+      if (info && info.prestigeLevel > 1) {
+        setPrestigeOverride(info.confId, info.prestigeLevel - 1);
+      }
+    } else if (action === 'dpadRight') {
+      const info = prestigeInfos[focusIndex];
+      if (info && info.prestigeLevel < 10) {
+        setPrestigeOverride(info.confId, info.prestigeLevel + 1);
+      }
+    } else if (action === 'X') {
+      const info = prestigeInfos[focusIndex];
+      if (info) clearPrestigeOverride(info.confId);
+    } else if (action === 'B') {
+      setScreen('draft-teams');
+    } else if (action === 'A' || action === 'Start') {
+      setScreen('rivalries');
+    }
+  });
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      <div className="flex-1 flex flex-col items-center p-8 overflow-y-auto">
+        <div className="w-full max-w-[950px] flex flex-col gap-8 pb-12">
+          
+          <div className="text-center mt-6 mb-4">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-primary uppercase mb-4 drop-shadow-[0_0_20px_rgba(250,204,21,0.2)]">Conference Prestige Review</h1>
+            <p className="text-muted-foreground text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed">
+              Prestige determines default bowl tie-ins and poll logic. It is auto-ranked by average team rating, but you can manually override any conference to force a specific tier.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-5">
+            {prestigeInfos.map((info, idx) => {
+              const isFocused = focusIndex === idx;
+              const isAuto = prestigeOverrides[info.confId] === undefined;
+              const conflictId = findPrestigeConflict(prestigeInfos, info.confId, info.prestigeLevel);
+              const conflictName = conflictId ? prestigeInfos.find(p => p.confId === conflictId)?.confName : null;
+              
+              return (
+                <div 
+                  key={info.confId} 
+                  ref={el => { refs.current[idx] = el; }} 
+                  onMouseEnter={() => setFocusIndex(idx)}
+                  className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all duration-300 ${isFocused ? 'border-ring bg-card shadow-[0_0_30px_rgba(250,204,21,0.15)] scale-[1.02] z-10 relative' : 'border-border/50 bg-card/40 opacity-70 hover:opacity-100 hover:border-border'}`}
+                >
+                  
+                  {/* Left: Info */}
+                  <div className="flex-1 min-w-[280px]">
+                    <h3 className="text-3xl font-bold font-sans tracking-tight">{info.confName || `Conference ${idx + 1}`}</h3>
+                    <div className="flex items-center gap-3 mt-4 font-mono text-sm">
+                      <span className="px-3 py-1.5 bg-background rounded-md border border-border font-bold text-muted-foreground">
+                        AVG <span className="text-foreground ml-1">{info.avgRating.toFixed(1)}</span>
+                      </span>
+                      <span className={`px-3 py-1.5 rounded-md font-bold tracking-widest text-xs border ${info.isFinal ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                        {info.isFinal ? 'FINAL' : 'PROVISIONAL'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Center: Stepper */}
+                  <div className="flex flex-col items-center justify-center px-10 shrink-0">
+                    <div className="flex items-center gap-8">
+                      <button 
+                        tabIndex={-1}
+                        className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-2xl transition-all ${isFocused ? 'border-ring text-ring hover:bg-ring/20' : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/50'}`} 
+                        onClick={() => { setFocusIndex(idx); setPrestigeOverride(info.confId, Math.max(1, info.prestigeLevel - 1)); }}
+                      >
+                        -
+                      </button>
+                      
+                      <div className={`text-7xl font-black font-mono w-24 text-center ${getPrestigeColorClass(info.prestigeLevel)} transition-all duration-300`}>
+                        {info.prestigeLevel}
+                      </div>
+                      
+                      <button 
+                        tabIndex={-1}
+                        className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-2xl transition-all ${isFocused ? 'border-ring text-ring hover:bg-ring/20' : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/50'}`} 
+                        onClick={() => { setFocusIndex(idx); setPrestigeOverride(info.confId, Math.min(10, info.prestigeLevel + 1)); }}
+                      >
+                        +
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4 h-8 flex items-center justify-center">
+                      {!isAuto && (
+                        <button 
+                          tabIndex={-1}
+                          onClick={() => { setFocusIndex(idx); clearPrestigeOverride(info.confId); }} 
+                          className="flex items-center gap-2 text-xs font-mono px-4 py-1.5 rounded-full bg-primary/20 text-primary hover:bg-primary/30 border border-primary/50 font-bold transition-colors"
+                        >
+                          MANUAL OVERRIDE <span className="opacity-60 text-lg leading-none mb-0.5">×</span>
+                        </button>
+                      )}
+                      {isAuto && (
+                        <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest px-4 py-1.5 rounded-full border border-dashed border-border/50">
+                          AUTO CALCULATED
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Right: Conflict Warning */}
+                  <div className="w-[240px] flex justify-end shrink-0">
+                    {conflictName ? (
+                      <div className="flex flex-col items-end text-right animate-in fade-in slide-in-from-right-4">
+                        <span className="text-red-400 font-bold text-sm tracking-widest flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
+                          CONFLICT
+                        </span>
+                        <span className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                          Level also held by<br/>
+                          <span className="text-foreground font-mono font-bold">{conflictName}</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-end text-right opacity-30">
+                        <span className="text-green-500 font-bold text-sm tracking-widest flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500" />
+                          UNIQUE
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                </div>
+              )
+            })}
+          </div>
+          
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="h-24 border-t-2 border-border/60 bg-card/60 backdrop-blur-md flex items-center justify-between px-10 shrink-0 z-20">
+        <div className="flex items-center gap-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <ControllerBadge action="dpadUp" label="NAV" active={true} />
+          <ControllerBadge action="dpadDown" label="NAV" active={true} />
+          <div className="w-px h-10 bg-border/50 mx-2" />
+          <ControllerBadge action="dpadLeft" label="ADJUST" active={true} />
+          <ControllerBadge action="dpadRight" label="ADJUST" active={true} />
+          <div className="w-px h-10 bg-border/50 mx-2" />
+          <ControllerBadge action="A" label="CONFIRM" active={true} />
+          <ControllerBadge action="B" label="BACK" active={true} />
+          <ControllerBadge action="X" label="CLEAR OVERRIDE" active={true} />
+        </div>
+        
+        <button
+          onClick={() => setScreen('rivalries')}
+          className="px-10 py-4 rounded-full font-black tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-[0_0_25px_rgba(250,204,21,0.4)] flex items-center gap-3 text-lg"
+        >
+          CONFIRM & CONTINUE <span className="font-mono text-base opacity-70">►</span>
+        </button>
+      </div>
+    </div>
+  );
+}
