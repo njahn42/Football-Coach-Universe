@@ -7,6 +7,8 @@ const ICON_MAP: Record<string, string> = {
   Y: 'Y',
   LB: 'LB',
   RB: 'RB',
+  LT: 'LT',
+  RT: 'RT',
   dpadLeft: '◀',
   dpadRight: '▶',
   dpadUp: '▲',
@@ -14,11 +16,12 @@ const ICON_MAP: Record<string, string> = {
   Start: '☰',
 };
 
-const COLOR_MAP: Record<string, string> = {
-  A: 'text-green-400 border-green-500/40 bg-green-500/10 shadow-[0_0_8px_rgba(74,222,128,0.3)]',
-  B: 'text-red-400 border-red-500/40 bg-red-500/10 shadow-[0_0_8px_rgba(248,113,113,0.3)]',
-  X: 'text-blue-400 border-blue-500/40 bg-blue-500/10 shadow-[0_0_8px_rgba(96,165,250,0.3)]',
-  Y: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10 shadow-[0_0_8px_rgba(250,204,21,0.3)]',
+// Game-accurate colors: face buttons use Xbox colors; shoulder = neutral
+const FACE_COLORS: Record<string, string> = {
+  A: 'text-green-400 border-green-600/50 bg-green-900/30',
+  B: 'text-red-400 border-red-600/50 bg-red-900/30',
+  X: 'text-sky-400 border-sky-600/50 bg-sky-900/30',
+  Y: 'text-yellow-400 border-yellow-600/50 bg-yellow-900/30',
 };
 
 interface ControllerBadgeProps {
@@ -28,19 +31,23 @@ interface ControllerBadgeProps {
 }
 
 export function ControllerBadge({ action, label, active = false }: ControllerBadgeProps) {
-  const icon = ICON_MAP[action] || action;
-  
-  const isFace = ['A','B','X','Y'].includes(action);
-  const activeColor = isFace 
-    ? COLOR_MAP[action] 
-    : 'text-primary border-primary bg-primary/10 shadow-[0_0_8px_rgba(250,204,21,0.3)]';
-  
+  const icon = ICON_MAP[action] ?? action;
+  const isFace = ['A', 'B', 'X', 'Y'].includes(action);
+
+  const activeColor = isFace
+    ? FACE_COLORS[action]
+    : 'text-muted-foreground border-border bg-muted/40';
+
   return (
-    <div className={`inline-flex items-center gap-2 transition-all duration-300 ${active ? 'opacity-100 scale-105' : 'opacity-50 scale-100 grayscale-[0.3]'}`}>
-      <div className={`flex items-center justify-center min-w-[28px] h-[28px] rounded-full border-2 ${active ? activeColor : 'border-muted-foreground/30 text-muted-foreground bg-muted/30'} text-[11px] font-mono font-black shadow-sm px-1.5`}>
+    <div className={`inline-flex items-center gap-1.5 transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-40'}`}>
+      <div className={`flex items-center justify-center min-w-[24px] h-[24px] rounded-full border ${active ? activeColor : 'border-muted-foreground/20 text-muted-foreground/40 bg-muted/20'} text-[10px] font-mono font-bold px-1`}>
         {icon}
       </div>
-      {label && <span className={`text-sm font-bold uppercase tracking-wider ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>}
+      {label && (
+        <span className={`text-xs font-medium uppercase tracking-wider ${active ? 'text-muted-foreground' : 'text-muted-foreground/40'}`}>
+          {label}
+        </span>
+      )}
     </div>
   );
 }

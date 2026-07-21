@@ -172,75 +172,75 @@ export default function ConferenceSetupScreen() {
     : [];
 
   return (
-    <div className="min-h-screen flex flex-col p-8 max-w-5xl mx-auto pt-12 animate-in fade-in slide-in-from-right-8 duration-500">
+    <div className="min-h-screen flex flex-col px-8 py-10 max-w-5xl mx-auto">
       {/* Breadcrumb / Progress */}
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center gap-4">
-          <div className="w-3 h-3 rounded-full bg-primary animate-pulse shadow-[0_0_12px_rgba(250,204,21,0.8)]"></div>
-          <div className="text-lg font-black text-foreground tracking-widest uppercase">
-            Conference <span className="text-primary">{confIndex + 1}</span> <span className="opacity-50 mx-1">of</span> {store.conferenceCount}
-          </div>
-        </div>
+      <div className="mb-8 pb-5 border-b border-border">
+        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">Step 3 of 3</p>
+        <h1 className="text-2xl font-bold text-foreground">
+          Conference {confIndex + 1}
+          <span className="text-muted-foreground font-normal text-lg ml-2">of {store.conferenceCount}</span>
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">Configure name, division structure, and championship city.</p>
       </div>
 
-      <div className="flex-1 flex flex-col gap-8 relative">
+      <div className="flex-1 flex flex-col gap-6 relative">
         {/* Name */}
         <div className="flex flex-col gap-3">
-          <label className="text-sm font-bold text-primary uppercase tracking-widest">Conference Name</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Conference Name</label>
           <div className="flex items-center gap-4">
             <input
               ref={el => { refs.current[0] = el; }}
               onFocus={() => setFocusedIndex(0)}
               value={conference.name}
               onChange={e => store.upsertConference(confIndex, { name: e.target.value })}
-              className="flex-1 bg-card border-2 border-border rounded-xl p-5 text-4xl font-black outline-none transition-all focus:border-primary focus:bg-card/50"
+              className="flex-1 bg-card border border-border rounded-lg px-4 py-3 text-xl font-bold text-foreground outline-none transition-colors focus:border-ring"
             />
-            <div className="flex flex-col gap-2 min-w-[140px] items-center">
-              <div className="flex gap-3">
-                <ControllerBadge action="LB" />
-                <ControllerBadge action="RB" />
+            <div className="flex flex-col gap-2 min-w-[110px] items-center">
+              <div className="flex gap-2">
+                <ControllerBadge action="LB" active={focusedIndex === 0} />
+                <ControllerBadge action="RB" active={focusedIndex === 0} />
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${focusedIndex === 0 ? 'text-primary' : 'text-muted-foreground'}`}>Cycle Name</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Cycle Name</span>
             </div>
           </div>
         </div>
 
         {/* Layout */}
         <div className="flex flex-col gap-3">
-          <label className="text-sm font-bold text-primary uppercase tracking-widest">Division Layout</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Division Layout</label>
           <div className="flex items-center gap-4">
             <div className="flex-1 flex flex-col">
-              <div 
+              <div
                 ref={el => { refs.current[1] = el; }}
                 tabIndex={0}
                 onFocus={() => setFocusedIndex(1)}
-                className="flex p-2 bg-card border-2 border-border rounded-xl outline-none transition-all focus:border-primary focus:bg-card/50"
+                className="flex p-1 bg-card border border-border rounded-lg outline-none transition-colors focus:border-ring"
               >
                 {LAYOUTS.map(layout => (
-                  <div 
+                  <div
                     key={layout}
                     onClick={() => store.setConferenceLayout(confIndex, layout)}
-                    className={`flex-1 text-center py-4 rounded-lg font-black text-xl cursor-pointer transition-all ${conference.layout === layout ? 'bg-primary text-primary-foreground shadow-[0_0_20px_rgba(250,204,21,0.2)]' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                    className={`flex-1 text-center py-2.5 rounded-md font-bold text-sm cursor-pointer transition-all ${conference.layout === layout ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
                   >
                     {LAYOUT_LABELS[layout]}
                   </div>
                 ))}
               </div>
-              
-              {/* Layout Stats Info Bar */}
-              <div className="flex justify-between items-center px-6 py-3 mt-3 bg-black/40 rounded-lg text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                <span>Total Teams: <strong className="text-foreground text-lg ml-2">{totalTeams(conference.layout)}</strong></span>
-                <span>Divisions: <strong className="text-foreground text-lg ml-2">{numDivs}</strong></span>
-                <span>Teams Per Div: <strong className="text-foreground text-lg ml-2">{teamsPerDivision(conference.layout)}</strong></span>
+
+              {/* Layout Stats */}
+              <div className="flex gap-6 items-center px-4 py-2 mt-2 bg-muted/30 rounded-lg text-xs font-mono text-muted-foreground">
+                <span>Total <strong className="text-foreground ml-1">{totalTeams(conference.layout)}</strong></span>
+                <span>Divisions <strong className="text-foreground ml-1">{numDivs}</strong></span>
+                <span>Per Division <strong className="text-foreground ml-1">{teamsPerDivision(conference.layout)}</strong></span>
               </div>
             </div>
-            
-            <div className="flex flex-col gap-2 min-w-[140px] items-center">
-              <div className="flex gap-3">
-                <ControllerBadge action="dpadLeft" />
-                <ControllerBadge action="dpadRight" />
+
+            <div className="flex flex-col gap-2 min-w-[110px] items-center">
+              <div className="flex gap-2">
+                <ControllerBadge action="dpadLeft" active={focusedIndex === 1} />
+                <ControllerBadge action="dpadRight" active={focusedIndex === 1} />
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${focusedIndex === 1 ? 'text-primary' : 'text-muted-foreground'}`}>Change Layout</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Layout</span>
             </div>
           </div>
         </div>
@@ -248,25 +248,25 @@ export default function ConferenceSetupScreen() {
         {/* Division Names */}
         {numDivs > 1 && (
           <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
-            <label className="text-sm font-bold text-primary uppercase tracking-widest">Division Names</label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Division Names</label>
             <div className="flex items-center gap-4">
               <button
                 ref={el => { refs.current[2] = el; }}
                 onFocus={() => setFocusedIndex(2)}
-                className="flex-1 bg-card border-2 border-border rounded-xl p-4 outline-none transition-all focus:border-primary focus:bg-card/50 flex gap-4 text-left"
+                className="flex-1 bg-card border border-border rounded-lg px-4 py-3 outline-none transition-colors focus:border-ring flex gap-3 text-left"
               >
                 {currentDivSet.map((name, i) => (
-                  <div key={i} className="flex-1 bg-black/40 p-4 rounded-lg border border-white/5 text-center text-xl font-bold text-foreground">
+                  <div key={i} className="flex-1 bg-muted/40 py-2.5 px-3 rounded-md border border-border/50 text-center text-sm font-semibold text-foreground">
                     {name}
                   </div>
                 ))}
               </button>
-              <div className="flex flex-col gap-2 min-w-[140px] items-center">
-                <div className="flex gap-3">
-                  <ControllerBadge action="LB" />
-                  <ControllerBadge action="RB" />
+              <div className="flex flex-col gap-2 min-w-[110px] items-center">
+                <div className="flex gap-2">
+                  <ControllerBadge action="LB" active={focusedIndex === 2} />
+                  <ControllerBadge action="RB" active={focusedIndex === 2} />
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${focusedIndex === 2 ? 'text-primary' : 'text-muted-foreground'}`}>Cycle Set</span>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Cycle Set</span>
               </div>
             </div>
           </div>
@@ -274,24 +274,24 @@ export default function ConferenceSetupScreen() {
 
         {/* CCG City */}
         <div className="flex flex-col gap-3">
-          <label className="text-sm font-bold text-primary uppercase tracking-widest">Championship Host City</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Championship Host City</label>
           <div className="flex items-center gap-4">
             <button
               ref={el => { refs.current[3] = el; }}
               onFocus={() => setFocusedIndex(3)}
               onClick={() => setIsCityPickerOpen(true)}
-              className="flex-1 bg-card border-2 border-border rounded-xl p-6 outline-none transition-all focus:border-primary focus:bg-card/50 flex items-center justify-between text-left group"
+              className="flex-1 bg-card border border-border rounded-lg px-4 py-3 outline-none transition-colors focus:border-ring flex items-center justify-between text-left"
             >
               {conference.ccgCity ? (
                 <div>
-                  <div className="text-2xl font-black text-foreground group-focus:text-primary transition-colors">{conference.ccgCity.cityName}</div>
-                  <div className="text-base text-muted-foreground font-medium flex items-center gap-3 mt-2">
+                  <div className="text-base font-semibold text-foreground">{conference.ccgCity.cityName}</div>
+                  <div className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
                     <span>{conference.ccgCity.stadium}</span>
-                    {conference.ccgCity.indoors && <span className="bg-primary/20 text-primary text-[10px] uppercase px-2 py-1 rounded font-black tracking-widest">Dome</span>}
+                    {conference.ccgCity.indoors && <span className="bg-primary/20 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-bold tracking-wider">Dome</span>}
                   </div>
                 </div>
               ) : (
-                <div className="text-2xl font-black text-muted-foreground opacity-50">Select a host city...</div>
+                <span className="text-muted-foreground/50 text-sm">Select a host city…</span>
               )}
               <ControllerBadge action="A" label="Browse" active={focusedIndex === 3} />
             </button>
@@ -301,15 +301,15 @@ export default function ConferenceSetupScreen() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="mt-8 flex justify-between items-center border-t-2 border-border pt-8">
-        <div className="flex items-center gap-4 text-muted-foreground font-medium">
-          {confIndex === 0 && <ControllerBadge action="B" label="Back" active={true} />}
+      <div className="mt-8 flex justify-between items-center border-t border-border pt-5">
+        <div>
+          {confIndex === 0 && <ControllerBadge action="B" label="Back" active />}
         </div>
         <button
           ref={el => { refs.current[4] = el; }}
           onFocus={() => setFocusedIndex(4)}
           onClick={handleNext}
-          className="flex items-center gap-4 bg-primary text-primary-foreground px-10 py-5 rounded-xl font-black text-xl transition-all hover:scale-105 active:scale-95 outline-none"
+          className="flex items-center gap-3 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-bold text-sm transition-all hover:brightness-110 active:brightness-90 outline-none"
         >
           <span>{confIndex < (store.conferenceCount || 6) - 1 ? 'Next Conference' : 'Finish Setup'}</span>
           <ControllerBadge action="A" active={focusedIndex === 4} />
@@ -318,28 +318,28 @@ export default function ConferenceSetupScreen() {
 
       {/* City Picker Modal overlay */}
       {isCityPickerOpen && (
-        <div className="absolute inset-0 bg-background/95 backdrop-blur-xl z-50 flex flex-col p-12 animate-in fade-in zoom-in-95 duration-200">
-          <div className="flex items-center gap-6 mb-8">
-            <ControllerBadge action="B" label="Cancel" active={true} />
-            <h2 className="text-4xl font-black text-foreground tracking-tight">Select Host City</h2>
+        <div className="absolute inset-0 bg-background/97 backdrop-blur-sm z-50 flex flex-col p-8">
+          <div className="flex items-center gap-4 mb-6 pb-5 border-b border-border">
+            <ControllerBadge action="B" label="Cancel" active />
+            <h2 className="text-xl font-bold text-foreground">Select Host City</h2>
           </div>
-          
-          <input 
+
+          <input
             ref={cityInputRef}
-            type="text" 
-            placeholder="Search cities or stadiums..."
+            type="text"
+            placeholder="Search cities or stadiums…"
             value={citySearch}
             onChange={e => setCitySearch(e.target.value)}
-            className="w-full bg-card border-2 border-primary rounded-xl p-6 text-2xl font-bold outline-none ring-4 ring-primary/20 mb-8 shadow-[0_0_30px_rgba(250,204,21,0.15)]"
+            className="w-full bg-card border border-border rounded-lg px-4 py-3 text-base font-medium text-foreground outline-none focus:border-ring transition-colors mb-4"
           />
 
-          <div className="flex-1 overflow-hidden relative rounded-xl border-2 border-border bg-card/80 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-hidden rounded-lg border border-border bg-card/60 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {filteredCities.map((city, idx) => (
-                <div 
+                <div
                   id={`city-item-${idx}`}
                   key={`${city.cityName}-${city.stadium}`}
-                  className={`p-5 rounded-xl flex items-center justify-between transition-colors cursor-pointer border-2 ${highlightedCityIndex === idx ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(250,204,21,0.2)]' : 'hover:bg-muted/50 text-foreground border-transparent'}`}
+                  className={`px-4 py-3 rounded-lg flex items-center justify-between cursor-pointer border transition-colors ${highlightedCityIndex === idx ? 'bg-ring/15 border-ring/50 text-foreground' : 'hover:bg-muted/40 text-foreground border-transparent'}`}
                   onMouseEnter={() => setHighlightedCityIndex(idx)}
                   onClick={() => {
                     store.upsertConference(confIndex, { ccgCity: city });
@@ -348,23 +348,21 @@ export default function ConferenceSetupScreen() {
                   }}
                 >
                   <div>
-                    <div className="font-black text-2xl">{city.cityName}</div>
-                    <div className={`text-base font-medium mt-1 ${highlightedCityIndex === idx ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{city.stadium}</div>
+                    <div className="font-semibold text-base">{city.cityName}</div>
+                    <div className={`text-sm mt-0.5 ${highlightedCityIndex === idx ? 'text-muted-foreground' : 'text-muted-foreground'}`}>{city.stadium}</div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     {city.indoors && (
-                      <div className={`text-[10px] uppercase px-3 py-1.5 rounded font-black tracking-widest ${highlightedCityIndex === idx ? 'bg-black/20' : 'bg-primary/20 text-primary'}`}>
+                      <span className="text-[10px] uppercase px-2 py-1 rounded bg-primary/15 text-primary font-bold tracking-wider">
                         Dome
-                      </div>
+                      </span>
                     )}
-                    {highlightedCityIndex === idx && (
-                      <ControllerBadge action="A" active={true} />
-                    )}
+                    {highlightedCityIndex === idx && <ControllerBadge action="A" active />}
                   </div>
                 </div>
               ))}
               {filteredCities.length === 0 && (
-                <div className="p-16 text-center text-muted-foreground text-2xl font-bold">No cities found.</div>
+                <div className="py-12 text-center text-muted-foreground text-sm">No cities found.</div>
               )}
             </div>
           </div>

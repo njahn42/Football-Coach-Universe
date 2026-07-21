@@ -4,10 +4,15 @@ import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
 
 const COUNTS = [6, 8, 10] as const;
+const DESCRIPTIONS: Record<number, string> = {
+  6:  'Focused universe — up to 60 teams. Tight competition, fast season.',
+  8:  'Balanced — up to 80 teams. The sweet spot for most dynasties.',
+  10: 'Full-scale universe — up to 100 teams. Maximum realism.',
+};
 
 export default function ConferenceCountScreen() {
   const store = useUniverseStore();
-  const [focusedIndex, setFocusedIndex] = useState(1); // default to 8
+  const [focusedIndex, setFocusedIndex] = useState(1);
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
@@ -19,74 +24,75 @@ export default function ConferenceCountScreen() {
     store.setScreen('conference-setup');
   };
 
-  const handleBack = () => store.setScreen('universe-info');
-
   useGamepad((action) => {
-    if (action === 'dpadLeft') {
-      setFocusedIndex(i => Math.max(0, i - 1));
-    } else if (action === 'dpadRight') {
-      setFocusedIndex(i => Math.min(2, i + 1));
-    } else if (action === 'A') {
-      handleSelect(COUNTS[focusedIndex]);
-    } else if (action === 'B') {
-      handleBack();
-    }
+    if (action === 'dpadLeft')  setFocusedIndex(i => Math.max(0, i - 1));
+    else if (action === 'dpadRight') setFocusedIndex(i => Math.min(2, i + 1));
+    else if (action === 'A')    handleSelect(COUNTS[focusedIndex]);
+    else if (action === 'B')    store.setScreen('universe-info');
   });
 
   return (
-    <div className="min-h-screen flex flex-col p-8 max-w-6xl mx-auto pt-16 animate-in fade-in slide-in-from-right-8 duration-500">
-      <div className="text-center mb-16">
-        <h1 className="text-5xl font-black text-foreground mb-4 tracking-tight">Conference Structure</h1>
-        <p className="text-muted-foreground text-2xl font-medium">How many major conferences will form the foundation of this universe?</p>
+    <div className="min-h-screen flex flex-col px-8 py-10 max-w-5xl mx-auto">
+      {/* Page header */}
+      <div className="mb-10 pb-5 border-b border-border">
+        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">Step 2 of 3</p>
+        <h1 className="text-2xl font-bold text-foreground">Conference Structure</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          How many major conferences will form the foundation of this universe?
+        </p>
       </div>
 
-      <div className="flex-1 flex justify-center items-center gap-8 px-8">
-        {COUNTS.map((count, idx) => (
-          <button
-            key={count}
-            ref={el => { cardRefs.current[idx] = el; }}
-            onFocus={() => setFocusedIndex(idx)}
-            onClick={() => handleSelect(count)}
-            className={`relative group flex-1 aspect-[3/4] rounded-[2rem] border-4 transition-all outline-none flex flex-col items-center justify-center gap-6 overflow-hidden ${
-              focusedIndex === idx 
-                ? 'border-primary bg-primary/10 scale-105 z-10' 
-                : 'border-border bg-card hover:border-primary/50 hover:bg-card/80 scale-95 opacity-80'
-            }`}
-          >
-            {/* Glow effect when focused */}
-            {focusedIndex === idx && (
-              <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full -z-10 scale-150 pointer-events-none" />
-            )}
+      <div className="flex-1 flex gap-5 items-center">
+        {COUNTS.map((count, idx) => {
+          const isFocused = focusedIndex === idx;
+          return (
+            <button
+              key={count}
+              ref={el => { cardRefs.current[idx] = el; }}
+              onFocus={() => setFocusedIndex(idx)}
+              onClick={() => handleSelect(count)}
+              className={`relative flex-1 rounded-xl border-2 p-8 flex flex-col items-center gap-5 transition-all duration-200 outline-none text-left ${
+                isFocused
+                  ? 'border-ring bg-card shadow-lg scale-[1.03]'
+                  : 'border-border bg-card/50 hover:bg-card hover:border-border/80 scale-100 opacity-75 hover:opacity-100'
+              }`}
+            >
+              {/* Conference count — big but not extreme */}
+              <div className={`text-7xl font-black font-mono leading-none transition-colors ${isFocused ? 'text-primary' : 'text-muted-foreground/70'}`}>
+                {count}
+              </div>
 
-            <div className={`text-9xl font-black transition-colors ${focusedIndex === idx ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
-              {count}
-            </div>
-            
-            <div className={`text-2xl font-black tracking-widest uppercase transition-colors ${focusedIndex === idx ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Conferences
-            </div>
-            
-            <div className={`absolute bottom-8 px-6 py-3 rounded-xl border-2 transition-colors font-bold text-lg ${
-              focusedIndex === idx 
-                ? 'bg-background border-primary text-primary' 
-                : 'bg-background/50 border-border text-muted-foreground'
-            }`}>
-              Up to {count * 10} Teams
-            </div>
-          </button>
-        ))}
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className={`text-sm font-semibold uppercase tracking-widest ${isFocused ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Conferences
+                </span>
+                <span className={`text-xs font-mono ${isFocused ? 'text-ring' : 'text-muted-foreground/60'}`}>
+                  Up to {count * 10} Teams
+                </span>
+              </div>
+
+              {/* Description — only visible when focused */}
+              <p className={`text-xs text-center leading-relaxed transition-all duration-300 ${isFocused ? 'text-muted-foreground opacity-100' : 'opacity-0'}`}>
+                {DESCRIPTIONS[count]}
+              </p>
+
+              {/* Selected indicator */}
+              {store.conferenceCount === count && (
+                <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Bottom Bar */}
-      <div className="mt-16 flex justify-between items-center border-t-2 border-border pt-8 px-4">
-        <div className="flex items-center gap-4">
-          <ControllerBadge action="B" label="Back" active={true} />
-        </div>
-        <div className="flex items-center gap-6 bg-card px-6 py-4 rounded-2xl border border-border">
-          <ControllerBadge action="dpadLeft" />
-          <ControllerBadge action="dpadRight" label="Select" active={true} />
-          <div className="w-1 h-1 rounded-full bg-border mx-2"></div>
-          <ControllerBadge action="A" label="Choose" active={true} />
+      {/* Bottom bar */}
+      <div className="mt-10 flex justify-between items-center pt-5 border-t border-border">
+        <ControllerBadge action="B" label="Back" active />
+        <div className="flex items-center gap-4 bg-card px-5 py-2.5 rounded-lg border border-border">
+          <ControllerBadge action="dpadLeft" active />
+          <ControllerBadge action="dpadRight" label="Select" active />
+          <div className="w-px h-4 bg-border mx-1" />
+          <ControllerBadge action="A" label="Choose" active />
         </div>
       </div>
     </div>

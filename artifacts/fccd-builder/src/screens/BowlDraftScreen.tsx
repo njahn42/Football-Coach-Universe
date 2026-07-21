@@ -86,7 +86,7 @@ export default function BowlDraftScreen() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-primary font-mono text-xl">
         <div className="animate-pulse flex items-center gap-4">
-          <div className="w-4 h-4 rounded-full bg-primary" />
+          <div className="w-2 h-2 rounded-full bg-primary" />
           LOADING BOWLS...
         </div>
       </div>
@@ -98,12 +98,12 @@ export default function BowlDraftScreen() {
       {/* ── Header ── */}
       <div className="border-b border-border bg-card/50 px-6 py-4 flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-black tracking-tighter text-primary uppercase">Bowl Draft</h1>
+          <h1 className="text-xl font-bold text-foreground">Bowl Draft</h1>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">Select and order your bowl games (max {MAX_BOWL_SELECTIONS})</p>
         </div>
         <button
           onClick={() => setScreen('review-export')}
-          className="px-7 py-2.5 rounded-full bg-primary text-primary-foreground font-mono font-black text-sm hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(250,204,21,0.25)]"
+          className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all"
         >
           CONTINUE ►
         </button>
@@ -120,7 +120,7 @@ export default function BowlDraftScreen() {
       {/* ── Split panels ── */}
       <div className="flex-1 flex overflow-hidden p-4 gap-4">
         {/* Left — Pool */}
-        <div className={`w-[55%] flex flex-col border-2 rounded-xl bg-card transition-all duration-300 ${activePanel === 'left' ? 'border-ring shadow-[0_0_20px_rgba(250,204,21,0.12)]' : 'border-border/50 opacity-80'}`}>
+        <div className={`w-[55%] flex flex-col border rounded-xl bg-card transition-all duration-300 ${activePanel === 'left' ? 'border-ring' : 'border-border/50 opacity-80'}`}>
           <div className="p-4 border-b border-border bg-background/50 rounded-t-xl shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-black font-mono text-primary tracking-tight">BOWL POOL</h2>
@@ -162,7 +162,7 @@ export default function BowlDraftScreen() {
         </div>
 
         {/* Right — Selection */}
-        <div className={`w-[45%] flex flex-col border-2 rounded-xl bg-card transition-all duration-300 ${activePanel === 'right' ? 'border-ring shadow-[0_0_20px_rgba(250,204,21,0.12)]' : 'border-border/50 opacity-80'}`}>
+        <div className={`w-[45%] flex flex-col border rounded-xl bg-card transition-all duration-300 ${activePanel === 'right' ? 'border-ring' : 'border-border/50 opacity-80'}`}>
           <div className="p-4 border-b border-border bg-background/50 rounded-t-xl shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black font-mono tracking-tight text-primary">SELECTED</h2>

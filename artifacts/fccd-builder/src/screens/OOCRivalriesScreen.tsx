@@ -124,7 +124,7 @@ export default function OOCRivalriesScreen() {
       {/* ── Main list ── */}
       <div className="border-b border-border bg-card/50 px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tighter text-primary uppercase">OOC Rivalries</h1>
+          <h1 className="text-xl font-bold text-foreground">OOC Rivalries</h1>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">Optional — add cross-conference rivalry series</p>
         </div>
         <div className="flex items-center gap-3">
@@ -136,7 +136,7 @@ export default function OOCRivalriesScreen() {
           </button>
           <button
             onClick={() => setScreen('bowl-draft')}
-            className="px-7 py-2 rounded-full bg-primary text-primary-foreground font-mono font-black text-sm hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(250,204,21,0.25)]"
+            className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all"
           >
             CONTINUE ►
           </button>
@@ -313,7 +313,7 @@ export default function OOCRivalriesScreen() {
                     <div
                       key={label}
                       onClick={() => setStepperFocus(i)}
-                      className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 min-w-[140px] ${isFocused ? 'border-ring bg-card shadow-[0_0_20px_rgba(250,204,21,0.15)]' : 'border-border bg-card/40 hover:border-border/80'}`}
+                      className={`flex flex-col items-center gap-3 p-5 rounded-xl border cursor-pointer transition-all duration-200 min-w-[130px] ${isFocused ? 'border-ring bg-card shadow-sm' : 'border-border bg-card/40 hover:border-border/80'}`}
                     >
                       <span className="text-xs font-mono font-bold text-muted-foreground tracking-widest">{label}</span>
                       <div className="flex items-center gap-3">
@@ -336,13 +336,13 @@ export default function OOCRivalriesScreen() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => { setStep('pickB'); setTeamB(null); }}
-                  className="px-6 py-2.5 rounded-full border-2 border-border text-muted-foreground font-mono font-bold hover:border-foreground/50 hover:text-foreground transition-all"
+                  className="px-5 py-2 rounded-lg border border-border text-muted-foreground font-medium text-sm hover:border-foreground/40 hover:text-foreground transition-all"
                 >
                   ◀ BACK
                 </button>
                 <button
                   onClick={confirmAdd}
-                  className="px-10 py-2.5 rounded-full bg-primary text-primary-foreground font-mono font-black hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)]"
+                  className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all"
                 >
                   ADD RIVALRY ⊕
                 </button>

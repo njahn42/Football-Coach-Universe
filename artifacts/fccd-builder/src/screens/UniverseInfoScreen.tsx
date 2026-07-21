@@ -32,37 +32,43 @@ export default function UniverseInfoScreen() {
     }
   });
 
-  const handleNext = () => store.setScreen('conference-count');
-
   return (
-    <div className="min-h-screen flex flex-col p-8 max-w-4xl mx-auto pt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-12">
-        <h1 className="text-5xl font-black text-foreground mb-3 tracking-tight">Create Universe</h1>
-        <p className="text-muted-foreground text-xl font-medium">Define the starting parameters for your new college football dynasty.</p>
+    <div className="min-h-screen flex flex-col px-8 py-10 max-w-3xl mx-auto">
+      {/* Page header */}
+      <div className="mb-8 pb-5 border-b border-border">
+        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">Step 1 of 3</p>
+        <h1 className="text-2xl font-bold text-foreground">Create Universe</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Define the starting parameters for your new college football dynasty.
+        </p>
       </div>
 
-      <div className="flex-1 flex flex-col gap-10">
-        {/* Name */}
-        <div className="flex flex-col gap-3 relative">
-          <label className="text-sm font-bold text-primary uppercase tracking-widest">Universe Name</label>
+      <div className="flex-1 flex flex-col gap-7">
+        {/* Universe Name */}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Universe Name
+          </label>
           <div className="flex items-center gap-4">
             <input
               ref={el => { inputRefs.current[0] = el; }}
               onFocus={() => setFocusedIndex(0)}
               value={store.universeName}
               onChange={e => store.setUniverseName(e.target.value)}
-              className="flex-1 bg-card border-2 border-border rounded-xl p-5 text-3xl font-bold outline-none transition-all focus:border-primary focus:bg-card/50"
+              className="flex-1 bg-card border border-border rounded-lg px-4 py-3 text-lg font-semibold text-foreground outline-none transition-colors focus:border-ring"
             />
-            <div className="flex items-center gap-3 px-2">
-              <ControllerBadge action="LB" />
+            <div className="flex items-center gap-2 shrink-0">
+              <ControllerBadge action="LB" active={focusedIndex === 0} />
               <ControllerBadge action="RB" label="Cycle" active={focusedIndex === 0} />
             </div>
           </div>
         </div>
 
-        {/* Year */}
-        <div className="flex flex-col gap-3">
-          <label className="text-sm font-bold text-primary uppercase tracking-widest">Starting Year</label>
+        {/* Starting Year */}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Starting Year
+          </label>
           <div className="flex items-center gap-4">
             <input
               ref={el => { inputRefs.current[1] = el; }}
@@ -70,18 +76,20 @@ export default function UniverseInfoScreen() {
               type="number"
               value={store.startingYear}
               onChange={e => store.setStartingYear(parseInt(e.target.value) || new Date().getFullYear())}
-              className="w-48 bg-card border-2 border-border rounded-xl p-5 text-3xl font-mono font-bold outline-none transition-all focus:border-primary focus:bg-card/50 text-center"
+              className="w-32 bg-card border border-border rounded-lg px-4 py-3 text-xl font-mono font-bold text-center text-foreground outline-none transition-colors focus:border-ring"
             />
-            <div className="flex items-center gap-3 px-2">
-              <ControllerBadge action="dpadLeft" />
+            <div className="flex items-center gap-2 shrink-0">
+              <ControllerBadge action="dpadLeft" active={focusedIndex === 1} />
               <ControllerBadge action="dpadRight" label="Adjust" active={focusedIndex === 1} />
             </div>
           </div>
         </div>
 
-        {/* Message */}
-        <div className="flex flex-col gap-3">
-          <label className="text-sm font-bold text-primary uppercase tracking-widest">Welcome Message</label>
+        {/* Welcome Message */}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Welcome Message
+          </label>
           <div className="flex items-start gap-4">
             <textarea
               ref={el => { inputRefs.current[2] = el; }}
@@ -89,29 +97,29 @@ export default function UniverseInfoScreen() {
               value={store.startingMessage}
               onChange={e => store.setStartingMessage(e.target.value)}
               rows={3}
-              className="flex-1 bg-card border-2 border-border rounded-xl p-5 text-xl outline-none transition-all focus:border-primary focus:bg-card/50 resize-none font-medium leading-relaxed"
+              className="flex-1 bg-card border border-border rounded-lg px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-ring resize-none leading-relaxed"
             />
-            <div className="flex flex-col items-center gap-3 px-2 py-3">
-              <div className="flex gap-3">
-                <ControllerBadge action="LB" />
-                <ControllerBadge action="RB" />
+            <div className="flex flex-col items-center gap-2 pt-2 shrink-0">
+              <div className="flex gap-2">
+                <ControllerBadge action="LB" active={focusedIndex === 2} />
+                <ControllerBadge action="RB" active={focusedIndex === 2} />
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${focusedIndex === 2 ? 'text-primary' : 'text-muted-foreground'}`}>Cycle Idea</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Cycle</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="mt-12 flex justify-between items-center gap-6 border-t-2 border-border pt-8">
-        <ControllerBadge action="B" label="Back (Disabled)" active={false} />
+      {/* Bottom bar */}
+      <div className="mt-8 flex justify-between items-center pt-5 border-t border-border">
+        <ControllerBadge action="B" label="Back" active={false} />
         <button
           ref={el => { inputRefs.current[3] = el; }}
           onFocus={() => setFocusedIndex(3)}
-          onClick={handleNext}
-          className="flex items-center gap-4 bg-primary text-primary-foreground px-10 py-5 rounded-xl font-black text-xl transition-all hover:scale-105 active:scale-95 outline-none"
+          onClick={() => store.setScreen('conference-count')}
+          className="flex items-center gap-3 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-bold text-sm transition-all hover:brightness-110 active:brightness-90 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         >
-          <span>Continue Setup</span>
+          Continue Setup
           <ControllerBadge action="A" active={focusedIndex === 3} />
         </button>
       </div>

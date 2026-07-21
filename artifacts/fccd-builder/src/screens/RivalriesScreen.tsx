@@ -119,13 +119,13 @@ export default function RivalriesScreen() {
       <div className="border-b border-border bg-card/50 px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-black tracking-tighter text-primary uppercase">Set Rivalries</h1>
+            <h1 className="text-xl font-bold text-foreground">Set Rivalries</h1>
             <p className="text-xs text-muted-foreground font-mono mt-0.5">Assign a divisional rival to every team</p>
           </div>
           <button
             onClick={() => allDone && setScreen('ooc-rivalries')}
             disabled={!allDone}
-            className={`px-7 py-2.5 rounded-full font-black tracking-widest font-mono text-sm transition-all ${allDone ? 'bg-primary text-primary-foreground hover:scale-105 shadow-[0_0_20px_rgba(250,204,21,0.35)]' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'}`}
+            className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${allDone ? 'bg-primary text-primary-foreground hover:brightness-110' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'}`}
           >
             CONTINUE ►
           </button>
@@ -218,7 +218,7 @@ export default function RivalriesScreen() {
               className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                 isFocused
                   ? isPreviewingThis
-                    ? 'border-primary bg-primary/10 shadow-[0_0_20px_rgba(250,204,21,0.2)]'
+                    ? 'border-primary bg-primary/10'
                     : 'border-ring bg-card shadow-md scale-[1.01]'
                   : 'border-transparent hover:bg-muted/30 hover:border-border'
               }`}

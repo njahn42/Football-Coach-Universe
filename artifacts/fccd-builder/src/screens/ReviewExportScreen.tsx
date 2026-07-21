@@ -113,7 +113,7 @@ export default function ReviewExportScreen() {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans relative">
       {/* ── Header ── */}
       <div className="border-b border-border bg-card/50 px-6 py-4 shrink-0">
-        <h1 className="text-2xl font-black tracking-tighter text-primary uppercase">Review & Export</h1>
+        <h1 className="text-xl font-bold text-foreground">Review & Export</h1>
         <p className="text-xs text-muted-foreground font-mono mt-0.5">Verify your universe and save the JSON file</p>
       </div>
 
@@ -261,7 +261,7 @@ export default function ReviewExportScreen() {
               <button
                 onClick={handleExportJSON}
                 disabled={!canExport || exporting}
-                className={`flex-1 py-3 rounded-xl font-black tracking-widest font-mono text-sm transition-all ${canExport && !exporting ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.3)]' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'}`}
+                className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${canExport && !exporting ? 'bg-primary text-primary-foreground hover:brightness-110' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'}`}
               >
                 {exporting ? 'EXPORTING…' : 'SAVE JSON'}
               </button>

@@ -5,9 +5,9 @@ import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
 
 function getPrestigeColorClass(level: number) {
-  if (level >= 8) return 'text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]';
-  if (level >= 5) return 'text-teal-400 drop-shadow-[0_0_15px_rgba(45,212,191,0.5)]';
-  return 'text-orange-700/90 drop-shadow-[0_0_15px_rgba(194,65,12,0.4)]';
+  if (level >= 8) return 'text-amber-400';
+  if (level >= 5) return 'text-teal-400';
+  return 'text-orange-600';
 }
 
 export default function PrestigeReviewScreen() {
@@ -57,8 +57,8 @@ export default function PrestigeReviewScreen() {
         <div className="w-full max-w-[950px] flex flex-col gap-8 pb-12">
           
           <div className="text-center mt-6 mb-4">
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-primary uppercase mb-4 drop-shadow-[0_0_20px_rgba(250,204,21,0.2)]">Conference Prestige Review</h1>
-            <p className="text-muted-foreground text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed">
+            <h1 className="text-2xl font-bold text-foreground mb-3">Conference Prestige Review</h1>
+            <p className="text-sm text-muted-foreground max-w-3xl mx-auto">
               Prestige determines default bowl tie-ins and poll logic. It is auto-ranked by average team rating, but you can manually override any conference to force a specific tier.
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function PrestigeReviewScreen() {
                   key={info.confId} 
                   ref={el => { refs.current[idx] = el; }} 
                   onMouseEnter={() => setFocusIndex(idx)}
-                  className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all duration-300 ${isFocused ? 'border-ring bg-card shadow-[0_0_30px_rgba(250,204,21,0.15)] scale-[1.02] z-10 relative' : 'border-border/50 bg-card/40 opacity-70 hover:opacity-100 hover:border-border'}`}
+                  className={`flex items-center justify-between p-5 rounded-xl border transition-all duration-200 ${isFocused ? 'border-ring bg-card shadow-sm scale-[1.01] z-10 relative' : 'border-border/50 bg-card/40 opacity-70 hover:opacity-100 hover:border-border'}`}
                 >
                   
                   {/* Left: Info */}
@@ -138,7 +138,7 @@ export default function PrestigeReviewScreen() {
                     {conflictName ? (
                       <div className="flex flex-col items-end text-right animate-in fade-in slide-in-from-right-4">
                         <span className="text-red-400 font-bold text-sm tracking-widest flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
+                          <span className="w-2 h-2 rounded-full bg-red-400" />
                           CONFLICT
                         </span>
                         <span className="text-xs text-muted-foreground mt-2 leading-relaxed">
@@ -165,7 +165,7 @@ export default function PrestigeReviewScreen() {
       </div>
       
       {/* Footer */}
-      <div className="h-24 border-t-2 border-border/60 bg-card/60 backdrop-blur-md flex items-center justify-between px-10 shrink-0 z-20">
+      <div className="h-16 border-t border-border/60 bg-card/50 flex items-center justify-between px-6 shrink-0 z-20">
         <div className="flex items-center gap-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <ControllerBadge action="dpadUp" label="NAV" active={true} />
           <ControllerBadge action="dpadDown" label="NAV" active={true} />
@@ -180,7 +180,7 @@ export default function PrestigeReviewScreen() {
         
         <button
           onClick={() => setScreen('rivalries')}
-          className="px-10 py-4 rounded-full font-black tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-[0_0_25px_rgba(250,204,21,0.4)] flex items-center gap-3 text-lg"
+          className="px-6 py-2.5 rounded-lg font-bold text-sm bg-primary text-primary-foreground hover:brightness-110 active:brightness-90 transition-all flex items-center gap-3"
         >
           CONFIRM & CONTINUE <span className="font-mono text-base opacity-70">►</span>
         </button>

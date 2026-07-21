@@ -23,49 +23,49 @@
 
   --font-sans: 'Outfit', 'Inter', sans-serif;
   --font-mono: 'Space Mono', 'Menlo', monospace;
-  
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
 }
 
 :root {
-  /* Control Room Aesthetic - Deep Navy with Amber Accent */
+  /* FC:CD-inspired dark palette */
   color-scheme: dark;
-  
-  --background: 224 71% 4%; /* #020617 */
-  --foreground: 210 40% 98%;
 
-  --card: 222 47% 11%; /* #0f172a */
-  --card-foreground: 210 40% 98%;
+  --background: 218 38% 9%;     /* #0f1c2e — deep charcoal-blue */
+  --foreground: 210 30% 94%;    /* #edf1f7 — near-white, slight blue tint */
 
-  --border: 215 28% 22%;
-  --input: 215 28% 22%;
+  --card: 217 32% 15%;          /* #1a2b40 — panel background */
+  --card-foreground: 210 30% 94%;
 
-  --primary: 43 96% 56%; /* #facc15 */
-  --primary-foreground: 224 71% 4%;
+  --border: 215 26% 24%;        /* #2d4159 — visible but subtle */
+  --input: 215 26% 24%;
 
-  --ring: 43 96% 56%;
+  --primary: 43 92% 50%;        /* #f0a900 — warm gold/amber for CTAs & ratings */
+  --primary-foreground: 218 38% 9%;
 
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --ring: 213 76% 56%;          /* #3b8fd1 — steel-blue focus ring */
 
-  --radius: 0.75rem;
+  --muted: 216 30% 18%;         /* #1e3049 — between card and border */
+  --muted-foreground: 213 18% 52%; /* #6e87a0 — medium blue-gray */
+
+  --radius: 0.5rem; /* 8px — tighter, game-like rounding */
 }
 
 .dark {
-  --background: 224 71% 4%;
-  --foreground: 210 40% 98%;
-  --card: 222 47% 11%;
-  --card-foreground: 210 40% 98%;
-  --border: 215 28% 22%;
-  --input: 215 28% 22%;
-  --primary: 43 96% 56%;
-  --primary-foreground: 224 71% 4%;
-  --ring: 43 96% 56%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --background: 218 38% 9%;
+  --foreground: 210 30% 94%;
+  --card: 217 32% 15%;
+  --card-foreground: 210 30% 94%;
+  --border: 215 26% 24%;
+  --input: 215 26% 24%;
+  --primary: 43 92% 50%;
+  --primary-foreground: 218 38% 9%;
+  --ring: 213 76% 56%;
+  --muted: 216 30% 18%;
+  --muted-foreground: 213 18% 52%;
 }
 
 @layer base {
@@ -76,33 +76,21 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Gamepad custom focus ring */
+  /* Clean blue focus ring — no amber glow */
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));
-    outline-offset: 4px;
+    outline-offset: 2px;
     border-radius: var(--radius-sm);
-    box-shadow: 0 0 20px 0px hsla(var(--ring), 0.3);
-    transition: outline 0.1s ease-out, box-shadow 0.1s ease-out;
+    transition: outline 0.1s ease-out;
   }
-  
-  /* Match outline border-radius to the element for cleaner rings */
-  .rounded-xl:focus-visible { border-radius: var(--radius-xl); }
-  .rounded-2xl:focus-visible { border-radius: calc(var(--radius) + 8px); }
-  .rounded-lg:focus-visible { border-radius: var(--radius-lg); }
-  
-  /* Console-style subtle scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 10px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--border));
-  }
+
+  .rounded-xl:focus-visible,
+  .rounded-2xl:focus-visible { border-radius: var(--radius-xl); }
+  .rounded-lg:focus-visible  { border-radius: var(--radius-lg); }
+
+  /* Game-style compact scrollbar */
+  ::-webkit-scrollbar        { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: hsl(var(--border)); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.6); }
 }
