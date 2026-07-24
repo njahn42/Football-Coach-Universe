@@ -55,10 +55,41 @@ export default function ConferenceSetupScreen() {
 
   const numDivs = conference ? numDivisions(conference.layout) : 1;
 
+  // Names and cities already claimed by *other* conferences (not the current one)
+  const usedNames = useMemo(
+    () =>
+      new Set(
+        store.conferences
+          .filter((_, i) => i !== confIndex)
+          .map(c => c.name.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [store.conferences, confIndex],
+  );
+
+  const usedCityNames = useMemo(
+    () =>
+      new Set(
+        store.conferences
+          .filter((_, i) => i !== confIndex)
+          .map(c => c.ccgCity?.cityName)
+          .filter(Boolean) as string[],
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [store.conferences, confIndex],
+  );
+
+  const availableConferenceNames = useMemo(
+    () => conferenceNames.filter(n => !usedNames.has(n.toLowerCase())),
+    [conferenceNames, usedNames],
+  );
+
   const filteredCities = cities.filter(
     c =>
-      c.cityName.toLowerCase().includes(citySearch.toLowerCase()) ||
-      c.stadium.toLowerCase().includes(citySearch.toLowerCase()),
+      !usedCityNames.has(c.cityName) &&
+      (c.cityName.toLowerCase().includes(citySearch.toLowerCase()) ||
+        c.stadium.toLowerCase().includes(citySearch.toLowerCase())),
   );
 
   // ── Focus sync ─────────────────────────────────────────────────────────────
@@ -103,12 +134,12 @@ export default function ConferenceSetupScreen() {
     }
   }, [conference, confIndex, store]);
 
-  // Load a default conference name if the field is empty
+  // Load a default conference name if the field is empty — use first *available* name
   useEffect(() => {
-    if (conference && !conference.name && conferenceNames.length > 0) {
-      store.upsertConference(confIndex, { name: conferenceNames[0] });
+    if (conference && !conference.name && availableConferenceNames.length > 0) {
+      store.upsertConference(confIndex, { name: availableConferenceNames[0] });
     }
-  }, [conference, conferenceNames, confIndex, store]);
+  }, [conference, availableConferenceNames, confIndex, store]);
 
   // ── Derived (safe to compute before null-guard — conference may be undefined) ──
 
@@ -211,16 +242,16 @@ export default function ConferenceSetupScreen() {
       const prev = LAYOUTS[Math.max(0, curr - 1)];
       store.setConferenceLayout(confIndex, prev);
     } else if (action === 'RB' && focusedIndex === 0) {
-      // Cycle conference name list when dropdown is closed
-      const curr = conferenceNames.indexOf(conference.name);
-      const next = conferenceNames[(curr + 1) % conferenceNames.length] || conferenceNames[0];
-      store.upsertConference(confIndex, { name: next });
+      // Cycle through available (non-used) conference names when dropdown is closed
+      const curr = availableConferenceNames.indexOf(conference.name);
+      const next = availableConferenceNames[(curr + 1) % availableConferenceNames.length] || availableConferenceNames[0];
+      if (next) store.upsertConference(confIndex, { name: next });
     } else if (action === 'LB' && focusedIndex === 0) {
-      const curr = conferenceNames.indexOf(conference.name);
+      const curr = availableConferenceNames.indexOf(conference.name);
       const prev =
-        conferenceNames[(curr - 1 + conferenceNames.length) % conferenceNames.length] ||
-        conferenceNames[0];
-      store.upsertConference(confIndex, { name: prev });
+        availableConferenceNames[(curr - 1 + availableConferenceNames.length) % availableConferenceNames.length] ||
+        availableConferenceNames[0];
+      if (prev) store.upsertConference(confIndex, { name: prev });
     } else if (action === 'A') {
       if (focusedIndex === 3) setIsCityPickerOpen(true);
       else if (focusedIndex === 4) handleNext();
@@ -265,7 +296,7 @@ export default function ConferenceSetupScreen() {
                 ref={confNameComboRef}
                 value={conference.name}
                 onChange={name => store.upsertConference(confIndex, { name })}
-                options={conferenceNames}
+                options={availableConferenceNames}
                 placeholder="Type or cycle a conference name…"
                 error={isDuplicateName}
                 onFocus={() => setFocusedIndex(0)}
