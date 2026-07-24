@@ -152,8 +152,15 @@ export default function ConferenceSetupScreen() {
         c.name.trim().toLowerCase() === conference.name.trim().toLowerCase(),
     );
 
+  const isMissingCity = !conference?.ccgCity;
+  const cannotAdvance = isDuplicateName || isMissingCity;
+
+  const clearCity = () => {
+    store.upsertConference(confIndex, { ccgCity: null as unknown as City });
+  };
+
   const handleNext = () => {
-    if (!conference || isDuplicateName) return;
+    if (!conference || cannotAdvance) return;
     if (confIndex < (store.conferenceCount || 6) - 1) {
       store.setConferenceSetupIndex(confIndex + 1);
       setFocusedIndex(0);
@@ -252,6 +259,8 @@ export default function ConferenceSetupScreen() {
         availableConferenceNames[(curr - 1 + availableConferenceNames.length) % availableConferenceNames.length] ||
         availableConferenceNames[0];
       if (prev) store.upsertConference(confIndex, { name: prev });
+    } else if (action === 'X') {
+      if (focusedIndex === 3 && conference.ccgCity) clearCity();
     } else if (action === 'A') {
       if (focusedIndex === 3) setIsCityPickerOpen(true);
       else if (focusedIndex === 4) handleNext();
@@ -427,15 +436,20 @@ export default function ConferenceSetupScreen() {
 
         {/* ── Championship Host City ── */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             Championship Host City
+            <span className="text-red-400 text-[10px] font-bold tracking-wider">REQUIRED</span>
           </label>
           <div className="flex items-center gap-4">
             <button
               ref={el => { refs.current[3] = el; }}
               onFocus={() => setFocusedIndex(3)}
               onClick={() => setIsCityPickerOpen(true)}
-              className="flex-1 bg-card border border-border rounded-lg px-4 py-3 outline-none transition-colors focus:border-ring flex items-center justify-between text-left"
+              className={`flex-1 bg-card border rounded-lg px-4 py-3 outline-none transition-colors focus:border-ring flex items-center justify-between text-left ${
+                isMissingCity && focusedIndex === 4
+                  ? 'border-red-500/60'
+                  : 'border-border'
+              }`}
             >
               {conference.ccgCity ? (
                 <div>
@@ -456,7 +470,25 @@ export default function ConferenceSetupScreen() {
               )}
               <ControllerBadge action="A" label="Browse" active={focusedIndex === 3} />
             </button>
+
+            {/* Clear button — only shown when a city is selected */}
+            {conference.ccgCity && (
+              <button
+                onClick={clearCity}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:border-ring transition-colors outline-none"
+                tabIndex={-1}
+              >
+                <ControllerBadge action="X" active={focusedIndex === 3} />
+                <span>Clear</span>
+              </button>
+            )}
           </div>
+          {isMissingCity && focusedIndex === 4 && (
+            <p className="text-xs text-red-400 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+              A championship host city is required before continuing.
+            </p>
+          )}
         </div>
 
       </div>
@@ -476,9 +508,9 @@ export default function ConferenceSetupScreen() {
           ref={el => { refs.current[4] = el; }}
           onFocus={() => setFocusedIndex(4)}
           onClick={handleNext}
-          disabled={isDuplicateName}
+          disabled={cannotAdvance}
           className={`flex items-center gap-3 px-6 py-2.5 rounded-lg font-bold text-sm transition-all outline-none ${
-            isDuplicateName
+            cannotAdvance
               ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
               : 'bg-primary text-primary-foreground hover:brightness-110 active:brightness-90'
           }`}
@@ -486,7 +518,7 @@ export default function ConferenceSetupScreen() {
           <span>
             {confIndex < (store.conferenceCount || 6) - 1 ? 'Next Conference' : 'Finish Setup'}
           </span>
-          <ControllerBadge action="A" active={focusedIndex === 4 && !isDuplicateName} />
+          <ControllerBadge action="A" active={focusedIndex === 4 && !cannotAdvance} />
         </button>
       </div>
 
