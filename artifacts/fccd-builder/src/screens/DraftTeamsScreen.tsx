@@ -3,6 +3,7 @@ import { useUniverseStore } from '@/store';
 import { useDraftFilter } from '@/hooks/useDraftFilter';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { TeamLogo } from '@/components/TeamLogo';
 import { LAYOUT_LABELS, totalTeams, MAX_DRAFTED_TEAMS, Team } from '@/types';
 
@@ -10,7 +11,9 @@ export default function DraftTeamsScreen() {
   const allTeams = useUniverseStore(s => s.allTeams);
   const setAllTeams = useUniverseStore(s => s.setAllTeams);
   const conferences = useUniverseStore(s => s.conferences);
+  const conferenceCount = useUniverseStore(s => s.conferenceCount);
   const setScreen = useUniverseStore(s => s.setScreen);
+  const setConferenceSetupIndex = useUniverseStore(s => s.setConferenceSetupIndex);
   const assignTeam = useUniverseStore(s => s.assignTeam);
   const removeTeamFromSlot = useUniverseStore(s => s.removeTeamFromSlot);
   
@@ -46,6 +49,11 @@ export default function DraftTeamsScreen() {
   const SORT_LABELS: Record<ConfSort, string> = { az: 'A–Z', za: 'Z–A', most: 'MOST', least: 'LEAST' };
   const [confSort, setConfSort] = useState<ConfSort>('az');
   const cycleSort = () => setConfSort(s => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
+
+  const handleBackFromDraft = () => {
+    setConferenceSetupIndex((conferenceCount ?? 6) - 1);
+    setScreen('conference-setup');
+  };
 
   const isCapped = draftedCount >= MAX_DRAFTED_TEAMS;
   const canContinue = draftedCount > 0;
@@ -166,7 +174,7 @@ export default function DraftTeamsScreen() {
         if (stagedTeam) {
           setStagedTeam(null);
         } else {
-          setScreen('conference-setup');
+          handleBackFromDraft();
         }
       } else if (action === 'Y') {
         clearFilters();
@@ -260,6 +268,15 @@ export default function DraftTeamsScreen() {
 
   return (
     <div className="h-[100dvh] bg-background text-foreground flex flex-col font-sans overflow-hidden">
+      <ScreenHeader
+        step={4}
+        totalSteps={9}
+        title="Draft Teams"
+        cta="Assign teams from the pool into conference slots"
+        requiredFields={[{ label: 'At least 1 team drafted', done: draftedCount > 0 }]}
+        onBack={handleBackFromDraft}
+        onContinue={() => setScreen('prestige-review')}
+      />
       <div className="flex-1 flex overflow-hidden p-4 gap-4">
         
         {/* Left Panel - Team Pool */}

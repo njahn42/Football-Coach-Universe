@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 export default function UniverseInfoScreen() {
   const store = useUniverseStore();
   const [focusedIndex, setFocusedIndex] = useState(0);
   const inputRefs = useRef<(HTMLElement | null)[]>([]);
+
+  const canContinue =
+    store.universeName.trim().length > 0 &&
+    !!store.startingYear &&
+    store.startingMessage.trim().length > 0;
 
   useEffect(() => {
     inputRefs.current[focusedIndex]?.focus();
@@ -14,7 +20,7 @@ export default function UniverseInfoScreen() {
 
   useGamepad((action) => {
     if (action === 'dpadDown') {
-      setFocusedIndex(i => Math.min(3, i + 1));
+      setFocusedIndex(i => Math.min(2, i + 1));
     } else if (action === 'dpadUp') {
       setFocusedIndex(i => Math.max(0, i - 1));
     } else if (action === 'dpadRight' && focusedIndex === 1) {
@@ -27,23 +33,29 @@ export default function UniverseInfoScreen() {
     } else if (action === 'LB') {
       if (focusedIndex === 0) store.cycleNameSuggestion('prev');
       if (focusedIndex === 2) store.cycleMessageSuggestion('prev');
-    } else if (action === 'A') {
-      if (focusedIndex === 3) store.setScreen('conference-count');
+    } else if (action === 'Start') {
+      if (canContinue) store.setScreen('conference-count');
     }
   });
 
-  return (
-    <div className="min-h-screen flex flex-col px-8 py-10 max-w-3xl mx-auto">
-      {/* Page header */}
-      <div className="mb-8 pb-5 border-b border-border">
-        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">Step 1 of 3</p>
-        <h1 className="text-2xl font-bold text-foreground">Create Universe</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Define the starting parameters for your new college football dynasty.
-        </p>
-      </div>
+  const requiredFields = [
+    { label: 'Universe name', done: store.universeName.trim().length > 0 },
+    { label: 'Starting year', done: !!store.startingYear },
+    { label: 'Welcome message', done: store.startingMessage.trim().length > 0 },
+  ];
 
-      <div className="flex-1 flex flex-col gap-7">
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      <ScreenHeader
+        step={1}
+        totalSteps={9}
+        title="Universe Info"
+        cta="Name your universe and set the starting season"
+        requiredFields={requiredFields}
+        onContinue={() => store.setScreen('conference-count')}
+      />
+
+      <div className="flex-1 flex flex-col gap-7 px-8 py-8 max-w-3xl w-full mx-auto">
         {/* Universe Name */}
         <div>
           <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
@@ -110,18 +122,15 @@ export default function UniverseInfoScreen() {
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="mt-8 flex justify-between items-center pt-5 border-t border-border">
-        <ControllerBadge action="B" label="Back" active={false} />
-        <button
-          ref={el => { inputRefs.current[3] = el; }}
-          onFocus={() => setFocusedIndex(3)}
-          onClick={() => store.setScreen('conference-count')}
-          className="flex items-center gap-3 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-bold text-sm transition-all hover:brightness-110 active:brightness-90 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-        >
-          Continue Setup
-          <ControllerBadge action="A" active={focusedIndex === 3} />
-        </button>
+      {/* Footer hints */}
+      <div className="border-t border-border/50 bg-card/30 px-8 py-3 flex items-center gap-5">
+        <ControllerBadge action="dpadUp" label="NAV" active />
+        <ControllerBadge action="dpadDown" label="NAV" active />
+        <div className="w-px h-6 bg-border/50" />
+        <ControllerBadge action="LB" label="CYCLE" active />
+        <ControllerBadge action="RB" label="CYCLE" active />
+        <div className="w-px h-6 bg-border/50 ml-auto" />
+        <ControllerBadge action="Start" label="CONTINUE" active={canContinue} />
       </div>
     </div>
   );

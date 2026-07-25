@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { useState } from 'react';
 
 const COUNTS = [6, 8, 10] as const;
 const DESCRIPTIONS: Record<number, string> = {
@@ -19,6 +21,8 @@ export default function ConferenceCountScreen() {
     cardRefs.current[focusedIndex]?.focus();
   }, [focusedIndex]);
 
+  const canContinue = store.conferenceCount !== null;
+
   const handleSelect = (count: 6 | 8 | 10) => {
     store.setConferenceCount(count);
     store.setScreen('conference-setup');
@@ -29,20 +33,24 @@ export default function ConferenceCountScreen() {
     else if (action === 'dpadRight') setFocusedIndex(i => Math.min(2, i + 1));
     else if (action === 'A')    handleSelect(COUNTS[focusedIndex]);
     else if (action === 'B')    store.setScreen('universe-info');
+    else if (action === 'Start' && canContinue) store.setScreen('conference-setup');
   });
 
   return (
-    <div className="min-h-screen flex flex-col px-8 py-10 max-w-5xl mx-auto">
-      {/* Page header */}
-      <div className="mb-10 pb-5 border-b border-border">
-        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">Step 2 of 3</p>
-        <h1 className="text-2xl font-bold text-foreground">Conference Structure</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          How many major conferences will form the foundation of this universe?
-        </p>
-      </div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      <ScreenHeader
+        step={2}
+        totalSteps={9}
+        title="Conference Count"
+        cta="How many conferences will your universe have?"
+        requiredFields={[
+          { label: 'Conference count', done: canContinue },
+        ]}
+        onBack={() => store.setScreen('universe-info')}
+        onContinue={() => store.setScreen('conference-setup')}
+      />
 
-      <div className="flex-1 flex gap-5 items-center">
+      <div className="flex-1 flex gap-5 items-center px-8 py-8 max-w-5xl w-full mx-auto">
         {COUNTS.map((count, idx) => {
           const isFocused = focusedIndex === idx;
           return (
@@ -57,7 +65,6 @@ export default function ConferenceCountScreen() {
                   : 'border-border bg-card/50 hover:bg-card hover:border-border/80 scale-100 opacity-75 hover:opacity-100'
               }`}
             >
-              {/* Conference count — big but not extreme */}
               <div className={`text-7xl font-black font-mono leading-none transition-colors ${isFocused ? 'text-primary' : 'text-muted-foreground/70'}`}>
                 {count}
               </div>
@@ -71,12 +78,10 @@ export default function ConferenceCountScreen() {
                 </span>
               </div>
 
-              {/* Description — only visible when focused */}
               <p className={`text-xs text-center leading-relaxed transition-all duration-300 ${isFocused ? 'text-muted-foreground opacity-100' : 'opacity-0'}`}>
                 {DESCRIPTIONS[count]}
               </p>
 
-              {/* Selected indicator */}
               {store.conferenceCount === count && (
                 <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary" />
               )}
@@ -85,15 +90,16 @@ export default function ConferenceCountScreen() {
         })}
       </div>
 
-      {/* Bottom bar */}
-      <div className="mt-10 flex justify-between items-center pt-5 border-t border-border">
+      {/* Footer hints */}
+      <div className="border-t border-border/50 bg-card/30 px-8 py-3 flex items-center gap-4">
         <ControllerBadge action="B" label="Back" active />
-        <div className="flex items-center gap-4 bg-card px-5 py-2.5 rounded-lg border border-border">
-          <ControllerBadge action="dpadLeft" active />
-          <ControllerBadge action="dpadRight" label="Select" active />
-          <div className="w-px h-4 bg-border mx-1" />
-          <ControllerBadge action="A" label="Choose" active />
-        </div>
+        <div className="w-px h-6 bg-border/50" />
+        <ControllerBadge action="dpadLeft" active />
+        <ControllerBadge action="dpadRight" label="Select" active />
+        <div className="w-px h-6 bg-border/50" />
+        <ControllerBadge action="A" label="Choose" active />
+        <div className="w-px h-6 bg-border/50 ml-auto" />
+        <ControllerBadge action="Start" label="CONTINUE" active={canContinue} />
       </div>
     </div>
   );

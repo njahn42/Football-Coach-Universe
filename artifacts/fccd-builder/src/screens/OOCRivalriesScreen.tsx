@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import type { Team, OOCRivalry } from '@/types';
 
 type Step = 'list' | 'pickA' | 'pickB' | 'configure';
@@ -121,26 +122,26 @@ export default function OOCRivalriesScreen() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans relative">
-      {/* ── Main list ── */}
-      <div className="border-b border-border bg-card/50 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">OOC Rivalries</h1>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">Optional — add cross-conference rivalry series</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setStep('pickA'); setSearch(''); setTeamFocus(0); }}
-            className="px-5 py-2 rounded-full border-2 border-primary text-primary font-mono font-black text-sm hover:bg-primary hover:text-primary-foreground transition-all"
-          >
-            + ADD RIVALRY
-          </button>
-          <button
-            onClick={() => setScreen('bowl-draft')}
-            className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all"
-          >
-            CONTINUE ►
-          </button>
-        </div>
+      {/* ── Header ── */}
+      <ScreenHeader
+        step={7}
+        totalSteps={9}
+        title="OOC Rivalries"
+        cta="Add out-of-conference rivalry series (optional)"
+        onBack={() => setScreen('rivalries')}
+        onContinue={() => setScreen('bowl-draft')}
+      />
+      {/* Sub-bar: count + add button */}
+      <div className="px-6 py-2 border-b border-border/40 bg-card/20 flex items-center justify-between shrink-0">
+        <span className="text-xs font-mono text-muted-foreground">
+          {oocRivalries.length === 0 ? 'No rivalries added yet' : `${oocRivalries.length} rivalry series configured`}
+        </span>
+        <button
+          onClick={() => { setStep('pickA'); setSearch(''); setTeamFocus(0); }}
+          className="px-4 py-1 rounded-full border border-primary text-primary font-mono font-black text-xs hover:bg-primary hover:text-primary-foreground transition-all"
+        >
+          + ADD RIVALRY
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import type { Team } from '@/types';
 
 export default function RivalriesScreen() {
@@ -116,33 +117,28 @@ export default function RivalriesScreen() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* ── Header ── */}
-      <div className="border-b border-border bg-card/50 px-6 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Set Rivalries</h1>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">Assign a divisional rival to every team</p>
-          </div>
-          <button
-            onClick={() => allDone && setScreen('ooc-rivalries')}
-            disabled={!allDone}
-            className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${allDone ? 'bg-primary text-primary-foreground hover:brightness-110' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'}`}
-          >
-            CONTINUE ►
-          </button>
+      <ScreenHeader
+        step={6}
+        totalSteps={9}
+        title="Rivalries"
+        cta="Set protected in-conference rivalries"
+        requiredFields={[{ label: 'All rivals assigned', done: allDone }]}
+        onBack={() => setScreen('prestige-review')}
+        onContinue={() => setScreen('ooc-rivalries')}
+      />
+      {/* Rivalry progress (informational — rivalries are optional) */}
+      <div className="flex items-center gap-4 px-6 py-2 border-b border-border/40 bg-card/20 shrink-0">
+        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-green-500' : 'bg-primary'}`}
+            style={{ width: `${pct}%` }}
+          />
         </div>
-        {/* Progress */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="text-sm font-mono font-bold text-muted-foreground whitespace-nowrap">
-            <span className={assigned === total && total > 0 ? 'text-green-400' : 'text-primary'}>{assigned}</span>
-            <span className="text-muted-foreground/50"> / {total}</span>
-          </span>
-        </div>
+        <span className="text-xs font-mono font-bold whitespace-nowrap">
+          <span className={allDone ? 'text-green-400' : 'text-primary'}>{assigned}</span>
+          <span className="text-muted-foreground/50"> / {total} rivals</span>
+          {allDone && total > 0 && <span className="text-green-400 ml-1">✓</span>}
+        </span>
       </div>
 
       {/* ── Conference Tabs ── */}

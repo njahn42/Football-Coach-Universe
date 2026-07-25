@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { usePrestige } from '@/hooks/usePrestige';
 import { useValidation, allBlockingPass } from '@/hooks/useValidation';
 import {
@@ -112,10 +113,13 @@ export default function ReviewExportScreen() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans relative">
       {/* ── Header ── */}
-      <div className="border-b border-border bg-card/50 px-6 py-4 shrink-0">
-        <h1 className="text-xl font-bold text-foreground">Review & Export</h1>
-        <p className="text-xs text-muted-foreground font-mono mt-0.5">Verify your universe and save the JSON file</p>
-      </div>
+      <ScreenHeader
+        step={9}
+        totalSteps={9}
+        title="Review & Export"
+        cta="Validate your universe and export the JSON file"
+        onBack={() => setScreen('bowl-draft')}
+      />
 
       {/* ── Main body ── */}
       <div className="flex-1 flex overflow-hidden">

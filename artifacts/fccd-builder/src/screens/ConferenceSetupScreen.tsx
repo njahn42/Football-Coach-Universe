@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Combobox } from '@/components/Combobox';
 import type { ComboboxHandle } from '@/components/Combobox';
 import type { DivisionLayout, City } from '@/types';
@@ -153,7 +154,13 @@ export default function ConferenceSetupScreen() {
     );
 
   const isMissingCity = !conference?.ccgCity;
-  const cannotAdvance = isDuplicateName || isMissingCity;
+  const missingDivName = numDivs > 1 && !!conference && conference.divisions.some(d => !d.name.trim());
+  const cannotAdvance = isDuplicateName || isMissingCity || missingDivName;
+  const confRequiredFields = !conference ? [] : [
+    { label: 'Conference name', done: !!conference.name.trim() && !isDuplicateName },
+    { label: 'CCG city', done: !isMissingCity },
+    ...(numDivs > 1 ? [{ label: 'Division names', done: !missingDivName }] : []),
+  ];
 
   const clearCity = () => {
     store.upsertConference(confIndex, { ccgCity: null as unknown as City });
@@ -264,6 +271,8 @@ export default function ConferenceSetupScreen() {
     } else if (action === 'A') {
       if (focusedIndex === 3) setIsCityPickerOpen(true);
       else if (focusedIndex === 4) handleNext();
+    } else if (action === 'Start') {
+      if (!cannotAdvance) handleNext();
     } else if (action === 'B') {
       handleBack();
     }
@@ -275,24 +284,20 @@ export default function ConferenceSetupScreen() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen flex flex-col px-8 py-10 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-8 pb-5 border-b border-border">
-        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-1.5">
-          Step 3 of 3
-        </p>
-        <h1 className="text-2xl font-bold text-foreground">
-          Conference {confIndex + 1}
-          <span className="text-muted-foreground font-normal text-lg ml-2">
-            of {store.conferenceCount}
-          </span>
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure name, division structure, and championship city.
-        </p>
-      </div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans relative">
+      <ScreenHeader
+        step={3}
+        totalSteps={9}
+        title="Conference Setup"
+        cta="Configure each conference's name, city, and division layout"
+        subtitle={`Conference ${confIndex + 1} of ${store.conferenceCount}`}
+        requiredFields={confRequiredFields}
+        onBack={handleBack}
+        onContinue={handleNext}
+        continueLabel={confIndex < (store.conferenceCount || 6) - 1 ? 'NEXT CONF' : 'START DRAFT'}
+      />
 
-      <div className="flex-1 flex flex-col gap-6 relative">
+      <div className="flex-1 flex flex-col gap-6 px-8 py-6 max-w-5xl mx-auto w-full relative">
 
         {/* ── Conference Name ── */}
         <div className="flex flex-col gap-2">
@@ -491,36 +496,19 @@ export default function ConferenceSetupScreen() {
           )}
         </div>
 
-      </div>
+        {/* ── Gamepad footer hints ── */}
+        <div className="flex items-center justify-between pt-4 border-t border-border mt-2">
+          <div className="flex items-center gap-4">
+            <ControllerBadge action="B" label={confIndex > 0 ? 'Prev Conf' : 'Back'} active />
+            <ControllerBadge action="X" label="Clear City" active={!!conference.ccgCity} />
+          </div>
+          <div className="flex items-center gap-4">
+            <ControllerBadge action="A" label="Select / Open" active />
+            <ControllerBadge action="Start" label="CONTINUE" active={!cannotAdvance} />
+          </div>
+        </div>
 
-      {/* ── Bottom Bar ── */}
-      <div className="mt-8 flex justify-between items-center border-t border-border pt-5">
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors outline-none"
-        >
-          <ControllerBadge action="B" active />
-          <span className="text-xs font-medium uppercase tracking-wider">
-            {confIndex > 0 ? 'Prev Conference' : 'Back'}
-          </span>
-        </button>
-        <button
-          ref={el => { refs.current[4] = el; }}
-          onFocus={() => setFocusedIndex(4)}
-          onClick={handleNext}
-          disabled={cannotAdvance}
-          className={`flex items-center gap-3 px-6 py-2.5 rounded-lg font-bold text-sm transition-all outline-none ${
-            cannotAdvance
-              ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
-              : 'bg-primary text-primary-foreground hover:brightness-110 active:brightness-90'
-          }`}
-        >
-          <span>
-            {confIndex < (store.conferenceCount || 6) - 1 ? 'Next Conference' : 'Finish Setup'}
-          </span>
-          <ControllerBadge action="A" active={focusedIndex === 4 && !cannotAdvance} />
-        </button>
-      </div>
+      </div>{/* end content wrapper */}
 
       {/* ── City Picker Modal ── */}
       {isCityPickerOpen && (

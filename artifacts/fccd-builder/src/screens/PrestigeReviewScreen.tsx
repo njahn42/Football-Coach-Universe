@@ -3,6 +3,7 @@ import { useUniverseStore } from '@/store';
 import { usePrestige, findPrestigeConflict } from '@/hooks/usePrestige';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 function getPrestigeColorClass(level: number) {
   if (level >= 8) return 'text-amber-400';
@@ -53,15 +54,16 @@ export default function PrestigeReviewScreen() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      <ScreenHeader
+        step={5}
+        totalSteps={9}
+        title="Prestige Review"
+        cta="Review calculated prestige and adjust any overrides"
+        onBack={() => setScreen('draft-teams')}
+        onContinue={() => setScreen('rivalries')}
+      />
       <div className="flex-1 flex flex-col items-center p-8 overflow-y-auto">
         <div className="w-full max-w-[950px] flex flex-col gap-8 pb-12">
-          
-          <div className="text-center mt-6 mb-4">
-            <h1 className="text-2xl font-bold text-foreground mb-3">Conference Prestige Review</h1>
-            <p className="text-sm text-muted-foreground max-w-3xl mx-auto">
-              Prestige determines default bowl tie-ins and poll logic. It is auto-ranked by average team rating, but you can manually override any conference to force a specific tier.
-            </p>
-          </div>
 
           <div className="flex flex-col gap-5">
             {prestigeInfos.map((info, idx) => {
@@ -178,12 +180,6 @@ export default function PrestigeReviewScreen() {
           <ControllerBadge action="X" label="CLEAR OVERRIDE" active={true} />
         </div>
         
-        <button
-          onClick={() => setScreen('rivalries')}
-          className="px-6 py-2.5 rounded-lg font-bold text-sm bg-primary text-primary-foreground hover:brightness-110 active:brightness-90 transition-all flex items-center gap-3"
-        >
-          CONFIRM & CONTINUE <span className="font-mono text-base opacity-70">►</span>
-        </button>
       </div>
     </div>
   );

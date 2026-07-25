@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { MAX_BOWL_SELECTIONS } from '@/types';
 
 export default function BowlDraftScreen() {
@@ -64,7 +65,7 @@ export default function BowlDraftScreen() {
       else if (action === 'A') {
         const bowl = filteredPool[leftFocus];
         if (bowl && !atLimit) addBowl(bowl);
-      } else if (action === 'B') setActivePanel('right');
+      } else if (action === 'B') setScreen('ooc-rivalries');
     } else {
       if (action === 'dpadUp')   setRightFocus(i => Math.max(0, i - 1));
       else if (action === 'dpadDown') setRightFocus(i => Math.min(selectedBowls.length - 1, i + 1));
@@ -78,7 +79,7 @@ export default function BowlDraftScreen() {
         if (rightFocus > 0) { reorderBowl(rightFocus, rightFocus - 1); setRightFocus(i => i - 1); }
       } else if (action === 'RT') {
         if (rightFocus < selectedBowls.length - 1) { reorderBowl(rightFocus, rightFocus + 1); setRightFocus(i => i + 1); }
-      } else if (action === 'B') setActivePanel('left');
+      } else if (action === 'B') setScreen('ooc-rivalries');
     }
   });
 
@@ -96,18 +97,14 @@ export default function BowlDraftScreen() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* ── Header ── */}
-      <div className="border-b border-border bg-card/50 px-6 py-4 flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Bowl Draft</h1>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">Select and order your bowl games (max {MAX_BOWL_SELECTIONS})</p>
-        </div>
-        <button
-          onClick={() => setScreen('review-export')}
-          className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all"
-        >
-          CONTINUE ►
-        </button>
-      </div>
+      <ScreenHeader
+        step={8}
+        totalSteps={9}
+        title="Bowl Draft"
+        cta="Select bowl games and set conference tie-ins"
+        onBack={() => setScreen('ooc-rivalries')}
+        onContinue={() => setScreen('review-export')}
+      />
 
       {/* ── Warning ── */}
       {bowlOverflow && (
