@@ -41,28 +41,56 @@ export default function DraftTeamsScreen() {
   const [expandedConfs, setExpandedConfs] = useState<Set<number>>(() => new Set(conferences.map((_, i) => i)));
   const [stagedTeam, setStagedTeam] = useState<Team | null>(null);
 
+  type ConfSort = 'az' | 'za' | 'most' | 'least';
+  const SORT_CYCLE: ConfSort[] = ['az', 'za', 'most', 'least'];
+  const SORT_LABELS: Record<ConfSort, string> = { az: 'A–Z', za: 'Z–A', most: 'MOST', least: 'LEAST' };
+  const [confSort, setConfSort] = useState<ConfSort>('az');
+  const cycleSort = () => setConfSort(s => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
+
   const isCapped = draftedCount >= MAX_DRAFTED_TEAMS;
   const canContinue = draftedCount > 0;
 
-  type RightPanelItem = 
+  type RightPanelItem =
     | { type: 'conf-header'; confIndex: number; conf: typeof conferences[0] }
+    | { type: 'div-header'; confIndex: number; divIndex: number; name: string; conf: typeof conferences[0] }
     | { type: 'slot'; confIndex: number; divIndex: number; slotIndex: number; team: Team | null; conf: typeof conferences[0] };
 
   const rightFocusItems = useMemo(() => {
+    // Build sortable list with fill counts, preserving original indices
+    const sortable = conferences.map((conf, cIdx) => ({
+      conf,
+      cIdx,
+      name: conf.name || `Conference ${cIdx + 1}`,
+      filled: conf.divisions.reduce((acc, d) => acc + d.teams.filter(t => t).length, 0),
+    }));
+    if (confSort === 'az') sortable.sort((a, b) => a.name.localeCompare(b.name));
+    else if (confSort === 'za') sortable.sort((a, b) => b.name.localeCompare(a.name));
+    else if (confSort === 'most') sortable.sort((a, b) => b.filled - a.filled);
+    else if (confSort === 'least') sortable.sort((a, b) => a.filled - b.filled);
+
     const items: RightPanelItem[] = [];
-    conferences.forEach((conf, cIdx) => {
+    sortable.forEach(({ conf, cIdx }) => {
       items.push({ type: 'conf-header', confIndex: cIdx, conf });
       if (expandedConfs.has(cIdx)) {
         conf.divisions.forEach((div, dIdx) => {
+          if (conf.divisions.length > 1) {
+            items.push({
+              type: 'div-header',
+              confIndex: cIdx,
+              divIndex: dIdx,
+              name: div.name || `Division ${dIdx + 1}`,
+              conf,
+            });
+          }
           const tpd = parseInt(conf.layout.split('x')[1], 10);
-          for(let sIdx = 0; sIdx < tpd; sIdx++) {
+          for (let sIdx = 0; sIdx < tpd; sIdx++) {
             items.push({ type: 'slot', confIndex: cIdx, divIndex: dIdx, slotIndex: sIdx, team: div.teams[sIdx] ?? null, conf });
           }
         });
       }
     });
     return items;
-  }, [conferences, expandedConfs]);
+  }, [conferences, expandedConfs, confSort]);
 
   // Safety clamps for focus indexing
   useEffect(() => {
@@ -143,9 +171,17 @@ export default function DraftTeamsScreen() {
       }
     } else {
       if (action === 'dpadUp') {
-        setRightFocusIndex(i => Math.max(0, i - 1));
+        setRightFocusIndex(i => {
+          let next = i - 1;
+          while (next >= 0 && rightFocusItems[next]?.type === 'div-header') next -= 1;
+          return Math.max(0, next);
+        });
       } else if (action === 'dpadDown') {
-        setRightFocusIndex(i => Math.min(rightFocusItems.length - 1, i + 1));
+        setRightFocusIndex(i => {
+          let next = i + 1;
+          while (next < rightFocusItems.length && rightFocusItems[next]?.type === 'div-header') next += 1;
+          return Math.min(rightFocusItems.length - 1, next);
+        });
       } else if (action === 'dpadLeft') {
         const item = rightFocusItems[rightFocusIndex];
         if (item) {
@@ -170,6 +206,10 @@ export default function DraftTeamsScreen() {
             next.add(item.confIndex);
             return next;
           });
+          // Move focus to the first real row after expanding (skip any div-header rows)
+          let firstSlot = rightFocusIndex + 1;
+          while (firstSlot < rightFocusItems.length && rightFocusItems[firstSlot]?.type === 'div-header') firstSlot += 1;
+          if (firstSlot < rightFocusItems.length) setRightFocusIndex(firstSlot);
         }
       } else if (action === 'A') {
         const item = rightFocusItems[rightFocusIndex];
@@ -189,6 +229,8 @@ export default function DraftTeamsScreen() {
             return next;
           });
         }
+      } else if (action === 'Y') {
+        cycleSort();
       } else if (action === 'B') {
         setActivePanel('left');
       }
@@ -281,7 +323,7 @@ export default function DraftTeamsScreen() {
                     className={`w-full flex items-center text-left p-3.5 rounded-xl border transition-all duration-200 ${isStaged ? 'border-ring bg-primary/20 shadow-[0_0_20px_rgba(250,204,21,0.3)] animate-pulse scale-[1.02] z-10' : isFocused ? 'border-ring bg-card/80 scale-[1.01] shadow-lg z-10' : 'border-transparent hover:bg-muted/50'}`}
                     tabIndex={-1}
                   >
-                    <TeamLogo abbreviation={team.abbreviation} primaryColor={team.primaryColor} size={36} className="mr-3 rounded-sm" />
+                    <TeamLogo name={team.name} primaryColor={team.primaryColor} size={36} className="mr-3 rounded-sm" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5">
                         <span className="font-mono font-bold text-xl">{team.abbreviation}</span>
@@ -306,12 +348,20 @@ export default function DraftTeamsScreen() {
         {/* Right Panel - Slot Tree */}
         <div className={`w-[38%] flex flex-col border-2 rounded-xl bg-card transition-all duration-300 ${activePanel === 'right' ? 'border-ring shadow-[0_0_20px_rgba(250,204,21,0.15)] relative z-10' : 'border-border/50 opacity-80 scale-[0.99]'}`}>
           <div className="p-5 border-b border-border bg-background/50 rounded-t-xl shrink-0">
-            <h2 className="text-xl font-bold font-mono tracking-tight text-primary flex items-center justify-between mb-4">
-              CONFERENCES
-              <span className={`text-sm font-bold px-3 py-1 rounded-md border ${completeConfs === conferences.length ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-muted/50 text-muted-foreground border-border'}`}>
-                {completeConfs} / {conferences.length} DONE
-              </span>
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold font-mono tracking-tight text-primary">CONFERENCES</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={cycleSort}
+                  className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-md border transition-colors ${activePanel === 'right' ? 'border-ring/60 bg-ring/10 text-foreground hover:bg-ring/20' : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60'}`}
+                >
+                  {SORT_LABELS[confSort]} ▸
+                </button>
+                <span className={`text-sm font-bold px-3 py-1 rounded-md border ${completeConfs === conferences.length ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-muted/50 text-muted-foreground border-border'}`}>
+                  {completeConfs} / {conferences.length} DONE
+                </span>
+              </div>
+            </div>
             {stagedTeam ? (
               <div className="bg-primary/10 border border-primary/50 text-primary text-sm p-3 rounded-lg font-mono flex items-center gap-3 animate-in fade-in slide-in-from-top-1 shadow-[0_0_10px_rgba(250,204,21,0.1)]">
                 <span className="animate-pulse bg-primary text-primary-foreground w-6 h-6 flex items-center justify-center rounded-full text-xs">▶</span> 
@@ -366,6 +416,15 @@ export default function DraftTeamsScreen() {
                     </div>
                   </button>
                 )
+              } else if (item.type === 'div-header') {
+                return (
+                  <div
+                    key={`div-${item.confIndex}-${item.divIndex}`}
+                    className="pl-12 pt-3 pb-1 text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground/70 border-b border-border/40"
+                  >
+                    {item.name}
+                  </div>
+                );
               } else {
                 // Slot
                 const isEmpty = !item.team;
@@ -398,7 +457,7 @@ export default function DraftTeamsScreen() {
                     ) : (
                       <div className="flex-1 flex items-center justify-between text-sm">
                         <div className="flex items-center gap-3">
-                          <TeamLogo abbreviation={item.team!.abbreviation} primaryColor={item.team!.primaryColor} size={24} className="rounded-sm" />
+                          <TeamLogo name={item.team!.name} primaryColor={item.team!.primaryColor} size={24} className="rounded-sm" />
                           <span className="font-mono font-black text-lg">{item.team!.abbreviation}</span>
                           <span className="text-muted-foreground truncate max-w-[110px] text-xs font-medium">{item.team!.name}</span>
                         </div>
@@ -425,7 +484,7 @@ export default function DraftTeamsScreen() {
           <div className="w-px h-8 bg-border/50 mx-1" />
           <ControllerBadge action="A" label={activePanel === 'left' ? 'STAGE' : stagedTeam ? 'ASSIGN' : 'REMOVE'} active={true} />
           <ControllerBadge action="B" label={activePanel === 'right' ? 'BACK / UNSTAGE' : stagedTeam ? 'UNSTAGE' : 'BACK'} active={true} />
-          <ControllerBadge action="Y" label="RESET FLT" active={activePanel === 'left'} />
+          <ControllerBadge action="Y" label={activePanel === 'left' ? 'RESET FLT' : `SORT: ${SORT_LABELS[confSort]}`} active={true} />
           <div className="w-px h-8 bg-border/50 mx-1 hidden lg:block" />
           <div className="hidden lg:block">
             <ControllerBadge action="Start" label="CONTINUE" active={canContinue} />
