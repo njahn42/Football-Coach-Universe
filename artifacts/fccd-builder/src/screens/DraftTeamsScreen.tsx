@@ -3,6 +3,7 @@ import { useUniverseStore } from '@/store';
 import { useDraftFilter } from '@/hooks/useDraftFilter';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
+import { TeamLogo } from '@/components/TeamLogo';
 import { LAYOUT_LABELS, totalTeams, MAX_DRAFTED_TEAMS, Team } from '@/types';
 
 export default function DraftTeamsScreen() {
@@ -212,7 +213,7 @@ export default function DraftTeamsScreen() {
   }).length;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+    <div className="h-[100dvh] bg-background text-foreground flex flex-col font-sans overflow-hidden">
       <div className="flex-1 flex overflow-hidden p-4 gap-4">
         
         {/* Left Panel - Team Pool */}
@@ -280,7 +281,7 @@ export default function DraftTeamsScreen() {
                     className={`w-full flex items-center text-left p-3.5 rounded-xl border transition-all duration-200 ${isStaged ? 'border-ring bg-primary/20 shadow-[0_0_20px_rgba(250,204,21,0.3)] animate-pulse scale-[1.02] z-10' : isFocused ? 'border-ring bg-card/80 scale-[1.01] shadow-lg z-10' : 'border-transparent hover:bg-muted/50'}`}
                     tabIndex={-1}
                   >
-                    <div className="w-1.5 h-12 rounded-full mr-4 shadow-sm" style={{ backgroundColor: team.primaryColor }} />
+                    <TeamLogo abbreviation={team.abbreviation} primaryColor={team.primaryColor} size={36} className="mr-3 rounded-sm" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5">
                         <span className="font-mono font-bold text-xl">{team.abbreviation}</span>
@@ -397,7 +398,7 @@ export default function DraftTeamsScreen() {
                     ) : (
                       <div className="flex-1 flex items-center justify-between text-sm">
                         <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-7 rounded-full shadow-sm" style={{ backgroundColor: item.team!.primaryColor }} />
+                          <TeamLogo abbreviation={item.team!.abbreviation} primaryColor={item.team!.primaryColor} size={24} className="rounded-sm" />
                           <span className="font-mono font-black text-lg">{item.team!.abbreviation}</span>
                           <span className="text-muted-foreground truncate max-w-[110px] text-xs font-medium">{item.team!.name}</span>
                         </div>
