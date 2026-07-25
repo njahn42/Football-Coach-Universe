@@ -52,7 +52,7 @@ export default function DraftTeamsScreen() {
 
   type RightPanelItem =
     | { type: 'conf-header'; confIndex: number; conf: typeof conferences[0] }
-    | { type: 'div-header'; confIndex: number; divIndex: number; name: string; conf: typeof conferences[0] }
+    | { type: 'div-header'; confIndex: number; divIndex: number; name: string; conf: typeof conferences[0]; filled: number; total: number }
     | { type: 'slot'; confIndex: number; divIndex: number; slotIndex: number; team: Team | null; conf: typeof conferences[0] };
 
   const rightFocusItems = useMemo(() => {
@@ -82,6 +82,8 @@ export default function DraftTeamsScreen() {
               divIndex: dIdx,
               name: div.name?.trim() || `Division ${dIdx + 1}`,
               conf,
+              filled: div.teams.filter(t => t).length,
+              total: tpd,
             });
           }
           for (let sIdx = 0; sIdx < tpd; sIdx++) {
@@ -382,6 +384,7 @@ export default function DraftTeamsScreen() {
               const isFocused = rightFocusIndex === idx && activePanel === 'right';
               
               if (item.type === 'div-header') {
+                const divFull = item.filled === item.total;
                 return (
                   <div
                     key={`div-header-${item.confIndex}-${item.divIndex}`}
@@ -392,6 +395,9 @@ export default function DraftTeamsScreen() {
                       {item.name}
                     </span>
                     <div className="flex-1 h-px bg-border/30" />
+                    <span className={`text-[10px] font-mono font-bold tabular-nums ${divFull ? 'text-green-400' : 'text-muted-foreground/60'}`}>
+                      {item.filled} / {item.total}
+                    </span>
                   </div>
                 );
               } else if (item.type === 'conf-header') {
@@ -431,15 +437,6 @@ export default function DraftTeamsScreen() {
                     </div>
                   </button>
                 )
-              } else if (item.type === 'div-header') {
-                return (
-                  <div
-                    key={`div-${item.confIndex}-${item.divIndex}`}
-                    className="pl-12 pt-3 pb-1 text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground/70 border-b border-border/40"
-                  >
-                    {item.name}
-                  </div>
-                );
               } else {
                 // Slot
                 const isEmpty = !item.team;
