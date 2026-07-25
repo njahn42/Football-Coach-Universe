@@ -72,17 +72,18 @@ export default function DraftTeamsScreen() {
     sortable.forEach(({ conf, cIdx }) => {
       items.push({ type: 'conf-header', confIndex: cIdx, conf });
       if (expandedConfs.has(cIdx)) {
+        const numDivs = conf.divisions.length;
+        const tpd = parseInt(conf.layout.split('x')[1], 10);
         conf.divisions.forEach((div, dIdx) => {
-          if (conf.divisions.length > 1) {
+          if (numDivs > 1) {
             items.push({
               type: 'div-header',
               confIndex: cIdx,
               divIndex: dIdx,
-              name: div.name || `Division ${dIdx + 1}`,
+              name: div.name?.trim() || `Division ${dIdx + 1}`,
               conf,
             });
           }
-          const tpd = parseInt(conf.layout.split('x')[1], 10);
           for (let sIdx = 0; sIdx < tpd; sIdx++) {
             items.push({ type: 'slot', confIndex: cIdx, divIndex: dIdx, slotIndex: sIdx, team: div.teams[sIdx] ?? null, conf });
           }
@@ -179,8 +180,9 @@ export default function DraftTeamsScreen() {
       } else if (action === 'dpadDown') {
         setRightFocusIndex(i => {
           let next = i + 1;
-          while (next < rightFocusItems.length && rightFocusItems[next]?.type === 'div-header') next += 1;
-          return Math.min(rightFocusItems.length - 1, next);
+          const max = rightFocusItems.length - 1;
+          while (next <= max && rightFocusItems[next]?.type === 'div-header') next += 1;
+          return Math.min(max, next);
         });
       } else if (action === 'dpadLeft') {
         const item = rightFocusItems[rightFocusIndex];
@@ -379,7 +381,20 @@ export default function DraftTeamsScreen() {
             {rightFocusItems.map((item, idx) => {
               const isFocused = rightFocusIndex === idx && activePanel === 'right';
               
-              if (item.type === 'conf-header') {
+              if (item.type === 'div-header') {
+                return (
+                  <div
+                    key={`div-header-${item.confIndex}-${item.divIndex}`}
+                    className="px-4 pt-2 pb-0.5 flex items-center gap-2"
+                    aria-hidden="true"
+                  >
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground/60">
+                      {item.name}
+                    </span>
+                    <div className="flex-1 h-px bg-border/30" />
+                  </div>
+                );
+              } else if (item.type === 'conf-header') {
                 const filled = item.conf.divisions.reduce((acc, d) => acc + d.teams.filter(t => t).length, 0);
                 const total = totalTeams(item.conf.layout);
                 const isFull = filled === total;
