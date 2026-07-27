@@ -29,21 +29,30 @@ export default function RivalriesScreen() {
   );
   const focusedTeam = divTeams[teamIdx] ?? null;
 
-  // Available rivals for the focused team:
-  //   • same division only (divTeams already scoped to current div)
-  //   • exclude the team itself
-  //   • exclude teams already committed to a different partner
-  //     (rivalries[t] exists and points somewhere other than focusedTeam)
-  const rivalOptions: Team[] = useMemo(() => {
-    if (!focusedTeam) return [];
-    return divTeams.filter(t => {
-      if (t.abbreviation === focusedTeam.abbreviation) return false;
-      const theirRival = rivalries[t.abbreviation];
-      // Exclude if already paired with someone else
-      if (theirRival && theirRival !== focusedTeam.abbreviation) return false;
-      return true;
-    });
-  }, [divTeams, focusedTeam, rivalries]);
+  // Build a per-team options map so every row uses its own filtered list.
+  // Rules (applied per row team A):
+  //   • must be in same division (divTeams is already division-scoped)
+  //   • exclude A itself
+  //   • exclude any team B where rivalries[B] exists AND rivalries[B] !== A
+  //     (B is already committed to someone other than A)
+  const rowOptionsMap = useMemo(() => {
+    const map = new Map<string, Team[]>();
+    for (const team of divTeams) {
+      const opts = divTeams.filter(t => {
+        if (t.abbreviation === team.abbreviation) return false;
+        const theirRival = rivalries[t.abbreviation];
+        if (theirRival && theirRival !== team.abbreviation) return false;
+        return true;
+      });
+      map.set(team.abbreviation, opts);
+    }
+    return map;
+  }, [divTeams, rivalries]);
+
+  // Gamepad-facing alias — always the focused team's slice
+  const rivalOptions: Team[] = focusedTeam
+    ? (rowOptionsMap.get(focusedTeam.abbreviation) ?? [])
+    : [];
 
   // Reset team focus when conf/div changes
   useEffect(() => {
@@ -228,17 +237,19 @@ export default function RivalriesScreen() {
           const confirmed = rivalries[team.abbreviation];
           const isPreviewingThis = isFocused && inRivalSelect;
           const displayRival = isPreviewingThis ? previewAbbr : (confirmed ?? null);
+          // Per-row options — correct filtering for THIS team, not the focused one
+          const rowOpts = rowOptionsMap.get(team.abbreviation) ?? [];
 
           return (
             <div
               key={team.abbreviation}
               onClick={() => {
                 setTeamIdx(idx);
-                if (rivalOptions.length > 0 && !isPreviewingThis) {
+                if (rowOpts.length > 0 && !isPreviewingThis) {
                   const current = rivalries[team.abbreviation];
                   const start = current
-                    ? (rivalOptions.find(t => t.abbreviation === current)?.abbreviation ?? rivalOptions[0].abbreviation)
-                    : rivalOptions[0].abbreviation;
+                    ? (rowOpts.find(t => t.abbreviation === current)?.abbreviation ?? rowOpts[0].abbreviation)
+                    : rowOpts[0].abbreviation;
                   setPreviewAbbr(start);
                 }
               }}
@@ -323,7 +334,7 @@ export default function RivalriesScreen() {
                       className="px-3 py-1.5 rounded-lg border border-dashed border-border bg-background text-muted-foreground text-sm font-mono cursor-pointer hover:border-primary/50 focus:outline-none focus:border-primary"
                     >
                       <option value="" disabled>— SELECT —</option>
-                      {rivalOptions.map(r => (
+                      {rowOpts.map(r => (
                         <option key={r.abbreviation} value={r.abbreviation}>{r.abbreviation} — {r.name}</option>
                       ))}
                     </select>
