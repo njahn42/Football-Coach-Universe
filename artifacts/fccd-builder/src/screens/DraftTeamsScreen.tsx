@@ -5,7 +5,7 @@ import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TeamLogo } from '@/components/TeamLogo';
-import { LAYOUT_LABELS, totalTeams, MAX_DRAFTED_TEAMS, Team } from '@/types';
+import { LAYOUT_LABELS, totalTeams, Team } from '@/types';
 
 export default function DraftTeamsScreen() {
   const allTeams = useUniverseStore(s => s.allTeams);
@@ -25,6 +25,12 @@ export default function DraftTeamsScreen() {
   // Subscribe to reactive data via hooks pattern to ensure freshness
   const draftedTeamAbbrs = useMemo(() => getDraftedTeamAbbrsFn(), [conferences, getDraftedTeamAbbrsFn]);
   const draftedCount = useMemo(() => getTotalDraftedCountFn(), [conferences, getTotalDraftedCountFn]);
+  const totalSlots = useMemo(() => conferences.reduce((acc, c) => acc + totalTeams(c.layout), 0), [conferences]);
+  const completeConfs = useMemo(() => conferences.filter(c => {
+    const total = totalTeams(c.layout);
+    const filled = c.divisions.reduce((acc, d) => acc + d.teams.filter(t => t).length, 0);
+    return total > 0 && total === filled;
+  }).length, [conferences]);
 
   // Load data once
   useEffect(() => {
@@ -70,8 +76,8 @@ export default function DraftTeamsScreen() {
     ]);
   }, [activePanel, stagedTeam, confSort, setControlBindings]);
 
-  const isCapped = draftedCount >= MAX_DRAFTED_TEAMS;
-  const canContinue = draftedCount > 0;
+  const isCapped = totalSlots > 0 && draftedCount >= totalSlots;
+  const canContinue = completeConfs === conferences.length && conferences.length > 0;
 
   type RightPanelItem =
     | { type: 'conf-header'; confIndex: number; conf: typeof conferences[0] }
@@ -245,9 +251,12 @@ export default function DraftTeamsScreen() {
           if (item.team) {
             removeTeamFromSlot(item.confIndex, item.divIndex, item.slotIndex);
           } else if (stagedTeam) {
+            const poolIdx = filtered.findIndex(t => t.abbreviation === stagedTeam.abbreviation);
+            const nextTeam = filtered[poolIdx + 1] ?? (poolIdx > 0 ? filtered[poolIdx - 1] : null) ?? null;
             assignTeam(stagedTeam, item.confIndex, item.divIndex, item.slotIndex);
-            setStagedTeam(null);
-            setActivePanel('left');
+            setStagedTeam(nextTeam);
+            if (!nextTeam) setActivePanel('left');
+            // leftFocusIndex stays: after pool shrinks, it naturally lands on the next entry
           }
         } else if (item?.type === 'conf-header') {
           setExpandedConfs(prev => {
@@ -276,12 +285,6 @@ export default function DraftTeamsScreen() {
     );
   }
 
-  const completeConfs = conferences.filter(c => {
-    const total = totalTeams(c.layout);
-    const filled = c.divisions.reduce((acc, d) => acc + d.teams.filter(t => t).length, 0);
-    return total > 0 && total === filled;
-  }).length;
-
   return (
     <div className="h-[100dvh] bg-background text-foreground flex flex-col font-sans overflow-hidden">
       <ScreenHeader
@@ -289,7 +292,7 @@ export default function DraftTeamsScreen() {
         totalSteps={9}
         title="Draft Teams"
         cta="Assign teams from the pool into conference slots"
-        requiredFields={[{ label: 'At least 1 team drafted', done: draftedCount > 0 }]}
+        requiredFields={[{ label: `All conferences filled (${completeConfs} / ${conferences.length})`, done: canContinue }]}
         onBack={handleBackFromDraft}
         onContinue={() => setScreen('prestige-review')}
       />
@@ -301,7 +304,7 @@ export default function DraftTeamsScreen() {
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-2xl font-black font-mono tracking-tighter text-primary">TEAM POOL</h2>
               <div className="text-sm font-mono text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md border border-border">
-                <span className="text-foreground font-bold text-base">{draftedCount} / 200</span> DRAFTED
+                <span className="text-foreground font-bold text-base">{draftedCount} / {totalSlots}</span> DRAFTED
               </div>
             </div>
             
@@ -336,7 +339,7 @@ export default function DraftTeamsScreen() {
                 <div className="text-7xl text-primary drop-shadow-[0_0_20px_rgba(250,204,21,0.6)]">★★★</div>
                 <div className="text-3xl font-black tracking-widest uppercase">Draft Complete</div>
                 <div className="text-muted-foreground text-lg bg-card/50 px-6 py-2 rounded-full border border-border">
-                  Maximum 200 Teams Selected
+                  All {totalSlots} Slots Filled
                 </div>
               </div>
             ) : filtered.length === 0 ? (
@@ -483,9 +486,11 @@ export default function DraftTeamsScreen() {
                       if (item.team) {
                         removeTeamFromSlot(item.confIndex, item.divIndex, item.slotIndex);
                       } else if (stagedTeam) {
+                        const poolIdx = filtered.findIndex(t => t.abbreviation === stagedTeam.abbreviation);
+                        const nextTeam = filtered[poolIdx + 1] ?? (poolIdx > 0 ? filtered[poolIdx - 1] : null) ?? null;
                         assignTeam(stagedTeam, item.confIndex, item.divIndex, item.slotIndex);
-                        setStagedTeam(null);
-                        setActivePanel('left');
+                        setStagedTeam(nextTeam);
+                        if (!nextTeam) setActivePanel('left');
                       }
                     }}
                     className={`w-full flex items-center p-2.5 pl-12 rounded-lg border transition-all duration-200
