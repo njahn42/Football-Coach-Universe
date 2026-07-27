@@ -380,11 +380,23 @@ export const useUniverseStore = create<UniverseState>()(
       // ── Division rivalries ───────────────────────────────────────────────────
       setRivalry: (teamAbbr, rivalAbbr) => {
         const { rivalries } = get();
-        set({ rivalries: { ...rivalries, [teamAbbr]: rivalAbbr } });
+        // Bidirectional: clear any old pairings first, then link both sides
+        const next = { ...rivalries };
+        // Remove previous rival's back-link if it existed
+        const oldRival = next[teamAbbr];
+        if (oldRival && next[oldRival] === teamAbbr) delete next[oldRival];
+        const oldBack = next[rivalAbbr];
+        if (oldBack && next[oldBack] === rivalAbbr) delete next[oldBack];
+        next[teamAbbr] = rivalAbbr;
+        next[rivalAbbr] = teamAbbr;
+        set({ rivalries: next });
       },
 
       clearRivalry: (teamAbbr) => {
         const next = { ...get().rivalries };
+        // Clear both sides of the pair
+        const rival = next[teamAbbr];
+        if (rival && next[rival] === teamAbbr) delete next[rival];
         delete next[teamAbbr];
         set({ rivalries: next });
       },

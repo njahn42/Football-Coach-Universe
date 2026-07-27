@@ -29,10 +29,21 @@ export default function RivalriesScreen() {
   );
   const focusedTeam = divTeams[teamIdx] ?? null;
 
-  const rivalOptions: Team[] = useMemo(
-    () => divTeams.filter(t => t.abbreviation !== focusedTeam?.abbreviation),
-    [divTeams, focusedTeam],
-  );
+  // Available rivals for the focused team:
+  //   • same division only (divTeams already scoped to current div)
+  //   • exclude the team itself
+  //   • exclude teams already committed to a different partner
+  //     (rivalries[t] exists and points somewhere other than focusedTeam)
+  const rivalOptions: Team[] = useMemo(() => {
+    if (!focusedTeam) return [];
+    return divTeams.filter(t => {
+      if (t.abbreviation === focusedTeam.abbreviation) return false;
+      const theirRival = rivalries[t.abbreviation];
+      // Exclude if already paired with someone else
+      if (theirRival && theirRival !== focusedTeam.abbreviation) return false;
+      return true;
+    });
+  }, [divTeams, focusedTeam, rivalries]);
 
   // Reset team focus when conf/div changes
   useEffect(() => {
