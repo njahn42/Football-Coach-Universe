@@ -9,6 +9,18 @@ export default function UniverseInfoScreen() {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const inputRefs = useRef<(HTMLElement | null)[]>([]);
 
+  useEffect(() => {
+    store.setControlBindings([
+      { action: 'dpadUp',    label: 'Navigate up' },
+      { action: 'dpadDown',  label: 'Navigate down' },
+      { action: 'dpadLeft',  label: 'Adjust year (on year field)' },
+      { action: 'dpadRight', label: 'Adjust year (on year field)' },
+      { action: 'LB',        label: 'Cycle suggestion' },
+      { action: 'RB',        label: 'Cycle suggestion' },
+      { action: 'Start',     label: 'Continue' },
+    ]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const canContinue =
     store.universeName.trim().length > 0 &&
     !!store.startingYear &&
@@ -19,6 +31,7 @@ export default function UniverseInfoScreen() {
   }, [focusedIndex]);
 
   useGamepad((action) => {
+    if (store.showControls) return;
     if (action === 'dpadDown') {
       setFocusedIndex(i => Math.min(2, i + 1));
     } else if (action === 'dpadUp') {
@@ -122,16 +135,6 @@ export default function UniverseInfoScreen() {
         </div>
       </div>
 
-      {/* Footer hints */}
-      <div className="border-t border-border/50 bg-card/30 px-8 py-3 flex items-center gap-5">
-        <ControllerBadge action="dpadUp" label="NAV" active />
-        <ControllerBadge action="dpadDown" label="NAV" active />
-        <div className="w-px h-6 bg-border/50" />
-        <ControllerBadge action="LB" label="CYCLE" active />
-        <ControllerBadge action="RB" label="CYCLE" active />
-        <div className="w-px h-6 bg-border/50 ml-auto" />
-        <ControllerBadge action="Start" label="CONTINUE" active={canContinue} />
-      </div>
     </div>
   );
 }

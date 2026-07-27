@@ -17,6 +17,8 @@ export default function PrestigeReviewScreen() {
   const setPrestigeOverride = useUniverseStore(s => s.setPrestigeOverride);
   const clearPrestigeOverride = useUniverseStore(s => s.clearPrestigeOverride);
   const setScreen = useUniverseStore(s => s.setScreen);
+  const showControls = useUniverseStore(s => s.showControls);
+  const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
   const prestigeInfos = usePrestige(conferences, prestigeOverrides);
 
@@ -27,7 +29,21 @@ export default function PrestigeReviewScreen() {
     refs.current[focusIndex]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [focusIndex]);
 
+  useEffect(() => {
+    setControlBindings([
+      { action: 'dpadUp',    label: 'Navigate up' },
+      { action: 'dpadDown',  label: 'Navigate down' },
+      { action: 'dpadLeft',  label: 'Lower prestige tier' },
+      { action: 'dpadRight', label: 'Raise prestige tier' },
+      { action: 'A',         label: 'Confirm tier' },
+      { action: 'X',         label: 'Clear override' },
+      { action: 'B',         label: 'Back to draft' },
+      { action: 'Start',     label: 'Continue to rivalries' },
+    ]);
+  }, [setControlBindings]);
+
   useGamepad((action) => {
+    if (showControls) return;
     if (action === 'dpadUp') {
       setFocusIndex(i => Math.max(0, i - 1));
     } else if (action === 'dpadDown') {
@@ -166,21 +182,6 @@ export default function PrestigeReviewScreen() {
         </div>
       </div>
       
-      {/* Footer */}
-      <div className="h-16 border-t border-border/60 bg-card/50 flex items-center justify-between px-6 shrink-0 z-20">
-        <div className="flex items-center gap-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <ControllerBadge action="dpadUp" label="NAV" active={true} />
-          <ControllerBadge action="dpadDown" label="NAV" active={true} />
-          <div className="w-px h-10 bg-border/50 mx-2" />
-          <ControllerBadge action="dpadLeft" label="ADJUST" active={true} />
-          <ControllerBadge action="dpadRight" label="ADJUST" active={true} />
-          <div className="w-px h-10 bg-border/50 mx-2" />
-          <ControllerBadge action="A" label="CONFIRM" active={true} />
-          <ControllerBadge action="B" label="BACK" active={true} />
-          <ControllerBadge action="X" label="CLEAR OVERRIDE" active={true} />
-        </div>
-        
-      </div>
     </div>
   );
 }

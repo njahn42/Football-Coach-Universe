@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useUniverseStore } from '@/store';
 import { useGamepad } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
@@ -30,6 +30,8 @@ export default function ReviewExportScreen() {
   const prestigeOverrides = useUniverseStore(s => s.prestigeOverrides);
   const getTotalDraftedCount = useUniverseStore(s => s.getTotalDraftedCount);
   const setScreen         = useUniverseStore(s => s.setScreen);
+  const showControls      = useUniverseStore(s => s.showControls);
+  const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
   const prestigeInfos = usePrestige(conferences, prestigeOverrides);
   const totalDraftedCount = useMemo(() => getTotalDraftedCount(), [conferences, getTotalDraftedCount]);
@@ -46,6 +48,16 @@ export default function ReviewExportScreen() {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const filenameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setControlBindings([
+      { action: 'dpadUp',    label: 'Navigate up' },
+      { action: 'dpadDown',  label: 'Navigate down' },
+      { action: 'A',         label: 'Fix issue / Export JSON' },
+      { action: 'B',         label: 'Back to bowl draft' },
+      { action: 'Start',     label: 'Export JSON' },
+    ]);
+  }, [setControlBindings]);
 
   const autoFilename = buildExportFilename(universeName);
   const filename = customFilename ?? autoFilename;
@@ -88,6 +100,7 @@ export default function ReviewExportScreen() {
   }
 
   useGamepad((action) => {
+    if (showControls) return;
     if (action === 'B') { setScreen('bowl-draft'); return; }
     if (action === 'dpadUp')   setValidFocus(i => Math.max(0, i - 1));
     else if (action === 'dpadDown') setValidFocus(i => Math.min(validationResults.length - 1, i + 1));
@@ -287,16 +300,6 @@ export default function ReviewExportScreen() {
         </div>
       </div>
 
-      {/* ── Footer ── */}
-      <div className="h-14 border-t border-border/60 bg-card/40 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-4">
-          <ControllerBadge action="dpadUp" label="NAV" active />
-          <ControllerBadge action="dpadDown" label="NAV" active />
-          <ControllerBadge action="A" label="FIX / EXPORT" active={canExport} />
-          <ControllerBadge action="B" label="BACK" active />
-        </div>
-        <ControllerBadge action="Start" label="EXPORT JSON" active={canExport} />
-      </div>
 
       {/* ── Success overlay ── */}
       {exportSuccess && (

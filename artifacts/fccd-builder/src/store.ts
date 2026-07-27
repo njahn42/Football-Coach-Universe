@@ -11,6 +11,7 @@ import type {
   Bowl,
   BowlSelection,
   BowlTieIn,
+  ControlBinding,
 } from './types';
 import { numDivisions, teamsPerDivision, MAX_DRAFTED_TEAMS, MAX_BOWL_SELECTIONS } from './types';
 
@@ -125,6 +126,13 @@ interface UniverseState {
 
   // Reset
   resetDraft: () => void;
+
+  // ── Controls overlay ─────────────────────────────────────────────────────────
+  showControls: boolean;
+  controlBindings: ControlBinding[];
+  setControlBindings: (bindings: ControlBinding[]) => void;
+  toggleControls: () => void;
+  closeControls: () => void;
 }
 
 // ─── Initial state ─────────────────────────────────────────────────────────────
@@ -136,6 +144,8 @@ const INITIAL_MSG = buildMessageSuggestions(INITIAL_NAME, INITIAL_YEAR)[0];
 const initialState = {
   currentScreen: 'universe-info' as ScreenId,
   conferenceSetupIndex: 0,
+  showControls: false,
+  controlBindings: [] as ControlBinding[],
   universeName: INITIAL_NAME,
   nameIndex: 0,
   startingYear: INITIAL_YEAR,
@@ -187,8 +197,13 @@ export const useUniverseStore = create<UniverseState>()(
       },
 
       // ── Navigation ──────────────────────────────────────────────────────────
-      setScreen: (screen) => set({ currentScreen: screen }),
+      setScreen: (screen) => set({ currentScreen: screen, showControls: false }),
       setConferenceSetupIndex: (index) => set({ conferenceSetupIndex: index }),
+
+      // ── Controls overlay ─────────────────────────────────────────────────────
+      setControlBindings: (bindings) => set({ controlBindings: bindings }),
+      toggleControls: () => set((s) => ({ showControls: !s.showControls })),
+      closeControls: () => set({ showControls: false }),
 
       // ── Universe Info ────────────────────────────────────────────────────────
       setUniverseName: (name) => {

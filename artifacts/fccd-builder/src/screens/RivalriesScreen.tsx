@@ -11,6 +11,8 @@ export default function RivalriesScreen() {
   const setRivalry    = useUniverseStore(s => s.setRivalry);
   const clearRivalry  = useUniverseStore(s => s.clearRivalry);
   const setScreen     = useUniverseStore(s => s.setScreen);
+  const showControls  = useUniverseStore(s => s.showControls);
+  const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
   const [confIdx, setConfIdx] = useState(0);
   const [divIdx,  setDivIdx]  = useState(0);
@@ -38,6 +40,23 @@ export default function RivalriesScreen() {
     setPreviewAbbr(null);
   }, [confIdx, divIdx]);
 
+  useEffect(() => {
+    setControlBindings([
+      { action: 'LB',        label: 'Previous conference' },
+      { action: 'RB',        label: 'Next conference' },
+      { action: 'LT',        label: 'Previous division' },
+      { action: 'RT',        label: 'Next division' },
+      { action: 'dpadUp',    label: 'Navigate teams' },
+      { action: 'dpadDown',  label: 'Navigate teams' },
+      { action: 'dpadLeft',  label: 'Cycle rival options' },
+      { action: 'dpadRight', label: 'Cycle rival options' },
+      { action: 'A',         label: 'Pick rival / Confirm' },
+      { action: 'X',         label: 'Clear rival' },
+      { action: 'B',         label: 'Back / Cancel' },
+      { action: 'Start',     label: 'Continue (when all set)' },
+    ]);
+  }, [setControlBindings]);
+
   // Progress
   const { assigned, total } = useMemo(() => {
     let assigned = 0, total = 0;
@@ -60,6 +79,7 @@ export default function RivalriesScreen() {
   const inRivalSelect = previewAbbr !== null;
 
   useGamepad((action) => {
+    if (showControls) return;
     if (action === 'LB') {
       setConfIdx(i => (i - 1 + confCount) % confCount);
       setDivIdx(0); setPreviewAbbr(null);
@@ -304,34 +324,6 @@ export default function RivalriesScreen() {
         })}
       </div>
 
-      {/* ── Footer ── */}
-      <div className="h-16 border-t border-border/60 bg-card/40 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-          <ControllerBadge action="LB" label="CONF" active />
-          <ControllerBadge action="RB" label="CONF" active />
-          <div className="w-px h-6 bg-border/50" />
-          <ControllerBadge action="LT" label="DIV" active />
-          <ControllerBadge action="RT" label="DIV" active />
-          <div className="w-px h-6 bg-border/50" />
-          {inRivalSelect ? (
-            <>
-              <ControllerBadge action="dpadLeft" label="RIVAL" active />
-              <ControllerBadge action="dpadRight" label="RIVAL" active />
-              <ControllerBadge action="A" label="CONFIRM" active />
-              <ControllerBadge action="B" label="CANCEL" active />
-            </>
-          ) : (
-            <>
-              <ControllerBadge action="dpadUp" label="TEAM" active />
-              <ControllerBadge action="dpadDown" label="TEAM" active />
-              <ControllerBadge action="A" label="PICK RIVAL" active />
-              <ControllerBadge action="X" label="CLEAR" active />
-              <ControllerBadge action="B" label="BACK" active />
-            </>
-          )}
-        </div>
-        <ControllerBadge action="Start" label="CONTINUE" active={allDone} />
-      </div>
     </div>
   );
 }

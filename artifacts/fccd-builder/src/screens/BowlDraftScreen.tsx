@@ -16,6 +16,8 @@ export default function BowlDraftScreen() {
   const reorderBowl   = useUniverseStore(s => s.reorderBowl);
   const setBowlTieIn  = useUniverseStore(s => s.setBowlTieIn);
   const setScreen     = useUniverseStore(s => s.setScreen);
+  const showControls  = useUniverseStore(s => s.showControls);
+  const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
   const [activePanel, setActivePanel]   = useState<'left' | 'right'>('left');
   const [leftFocus,   setLeftFocus]     = useState(0);
@@ -46,6 +48,20 @@ export default function BowlDraftScreen() {
     setRightFocus(i => Math.min(i, Math.max(0, selectedBowls.length - 1)));
   }, [selectedBowls.length]);
 
+  useEffect(() => {
+    setControlBindings([
+      { action: 'LB',       label: 'Pool panel' },
+      { action: 'RB',       label: 'Selected bowls panel' },
+      { action: 'dpadUp',   label: 'Navigate up' },
+      { action: 'dpadDown', label: 'Navigate down' },
+      ...(activePanel === 'left'
+        ? [{ action: 'LT' as const, label: 'Page up' }, { action: 'RT' as const, label: 'Page down' }, { action: 'A' as const, label: 'Add bowl game' }]
+        : [{ action: 'A' as const, label: 'Expand / collapse' }, { action: 'X' as const, label: 'Remove bowl game' }, { action: 'LT' as const, label: 'Move up' }, { action: 'RT' as const, label: 'Move down' }]),
+      { action: 'B',        label: 'Back to OOC Rivalries' },
+      { action: 'Start',    label: 'Continue to review' },
+    ]);
+  }, [activePanel, setControlBindings]);
+
   const totalDraftedCount = useMemo(() => getTotalDraftedCount(), [selectedBowls, getTotalDraftedCount]);
   const bowlOverflow = totalDraftedCount > 0 && selectedBowls.length * 2 > totalDraftedCount;
   const atLimit = selectedBowls.length >= MAX_BOWL_SELECTIONS;
@@ -53,6 +69,7 @@ export default function BowlDraftScreen() {
   const confNames = useMemo(() => conferences.map(c => c.name).filter(Boolean), [conferences]);
 
   useGamepad((action) => {
+    if (showControls) return;
     if (action === 'LB') { setActivePanel('left'); return; }
     if (action === 'RB') { setActivePanel('right'); return; }
     if (action === 'Start') { setScreen('review-export'); return; }
@@ -242,35 +259,6 @@ export default function BowlDraftScreen() {
         </div>
       </div>
 
-      {/* ── Footer ── */}
-      <div className="h-16 border-t border-border/60 bg-card/40 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-4 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-          <ControllerBadge action="LB" label={activePanel === 'right' ? 'SWITCH' : 'PANEL'} active />
-          <ControllerBadge action="RB" label={activePanel === 'left' ? 'SWITCH' : 'PANEL'} active />
-          <div className="w-px h-6 bg-border/50" />
-          {activePanel === 'left' ? (
-            <>
-              <ControllerBadge action="dpadUp" label="NAV" active />
-              <ControllerBadge action="dpadDown" label="NAV" active />
-              <ControllerBadge action="LT" label="PAGE" active />
-              <ControllerBadge action="RT" label="PAGE" active />
-              <ControllerBadge action="A" label="ADD" active={!atLimit} />
-            </>
-          ) : (
-            <>
-              <ControllerBadge action="dpadUp" label="NAV" active />
-              <ControllerBadge action="dpadDown" label="NAV" active />
-              <ControllerBadge action="A" label="EXPAND" active />
-              <ControllerBadge action="X" label="REMOVE" active />
-              <ControllerBadge action="LT" label="MOVE UP" active />
-              <ControllerBadge action="RT" label="MOVE DN" active />
-            </>
-          )}
-          <div className="w-px h-6 bg-border/50" />
-          <ControllerBadge action="B" label="BACK" active />
-        </div>
-        <ControllerBadge action="Start" label="CONTINUE" active />
-      </div>
     </div>
   );
 }

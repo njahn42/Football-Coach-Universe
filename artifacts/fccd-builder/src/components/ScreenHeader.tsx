@@ -1,3 +1,6 @@
+import { useUniverseStore } from '@/store';
+import { ControllerBadge } from './ControllerBadge';
+
 export interface RequiredField {
   label: string;
   done: boolean;
@@ -27,6 +30,7 @@ export function ScreenHeader({
   onContinue,
   continueLabel = 'CONTINUE',
 }: ScreenHeaderProps) {
+  const toggleControls = useUniverseStore(s => s.toggleControls);
   const doneCount = requiredFields?.filter(f => f.done).length ?? 0;
   const totalCount = requiredFields?.length ?? 0;
   const canContinue =
@@ -56,6 +60,16 @@ export function ScreenHeader({
 
         {/* Nav buttons */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Controls reference button */}
+          <button
+            onClick={toggleControls}
+            title="Controller reference (SELECT)"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md border border-border/40 bg-muted/20 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <ControllerBadge action="Select" active />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider hidden sm:block ml-0.5">Controls</span>
+          </button>
+
           {onBack && (
             <button
               onClick={onBack}

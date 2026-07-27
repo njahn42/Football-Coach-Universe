@@ -1,5 +1,6 @@
 import { useUniverseStore } from '@/store';
 import type { ScreenId } from '@/types';
+import { ControlsModal } from '@/components/ControlsModal';
 
 import UniverseInfoScreen    from '@/screens/UniverseInfoScreen';
 import ConferenceCountScreen from '@/screens/ConferenceCountScreen';
@@ -26,5 +27,10 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
 export default function App() {
   const currentScreen = useUniverseStore((s) => s.currentScreen);
   const Screen = SCREENS[currentScreen] ?? UniverseInfoScreen;
-  return <Screen />;
+  return (
+    <>
+      <Screen />
+      <ControlsModal />
+    </>
+  );
 }

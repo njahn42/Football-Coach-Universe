@@ -14,6 +14,7 @@ const ICON_MAP: Record<string, string> = {
   dpadUp: '▲',
   dpadDown: '▼',
   Start: '☰',
+  Select: '⊟',
 };
 
 // Game-accurate colors: face buttons use Xbox colors; shoulder = neutral

@@ -21,6 +21,16 @@ export default function ConferenceCountScreen() {
     cardRefs.current[focusedIndex]?.focus();
   }, [focusedIndex]);
 
+  useEffect(() => {
+    store.setControlBindings([
+      { action: 'B',         label: 'Back' },
+      { action: 'dpadLeft',  label: 'Select lower count' },
+      { action: 'dpadRight', label: 'Select higher count' },
+      { action: 'A',         label: 'Choose count & continue' },
+      { action: 'Start',     label: 'Continue' },
+    ]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const canContinue = store.conferenceCount !== null;
 
   const handleSelect = (count: 6 | 8 | 10) => {
@@ -29,6 +39,7 @@ export default function ConferenceCountScreen() {
   };
 
   useGamepad((action) => {
+    if (store.showControls) return;
     if (action === 'dpadLeft')  setFocusedIndex(i => Math.max(0, i - 1));
     else if (action === 'dpadRight') setFocusedIndex(i => Math.min(2, i + 1));
     else if (action === 'A')    handleSelect(COUNTS[focusedIndex]);
@@ -90,17 +101,6 @@ export default function ConferenceCountScreen() {
         })}
       </div>
 
-      {/* Footer hints */}
-      <div className="border-t border-border/50 bg-card/30 px-8 py-3 flex items-center gap-4">
-        <ControllerBadge action="B" label="Back" active />
-        <div className="w-px h-6 bg-border/50" />
-        <ControllerBadge action="dpadLeft" active />
-        <ControllerBadge action="dpadRight" label="Select" active />
-        <div className="w-px h-6 bg-border/50" />
-        <ControllerBadge action="A" label="Choose" active />
-        <div className="w-px h-6 bg-border/50 ml-auto" />
-        <ControllerBadge action="Start" label="CONTINUE" active={canContinue} />
-      </div>
     </div>
   );
 }

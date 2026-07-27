@@ -240,7 +240,8 @@ export type GamepadAction =
   | 'RB'
   | 'LT'
   | 'RT'
-  | 'Start';
+  | 'Start'
+  | 'Select';
 
 /** Standard Xbox button index mapping (works for Steam Deck in Desktop Mode). */
 export const GAMEPAD_BUTTON_MAP: Record<number, GamepadAction> = {
@@ -252,13 +253,19 @@ export const GAMEPAD_BUTTON_MAP: Record<number, GamepadAction> = {
   5:  'RB',
   6:  'LT',
   7:  'RT',
-  8:  'Start', // Select/Back maps to Start in this context
-  9:  'Start',
+  8:  'Select', // View / Select button
+  9:  'Start',  // Menu / Start button
   12: 'dpadUp',
   13: 'dpadDown',
   14: 'dpadLeft',
   15: 'dpadRight',
 };
+
+/** A single controller binding shown in the Controls overlay. */
+export interface ControlBinding {
+  action: GamepadAction;
+  label: string;
+}
 
 // ─── Draft cap ────────────────────────────────────────────────────────────────
 

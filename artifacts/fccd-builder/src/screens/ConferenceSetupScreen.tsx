@@ -45,6 +45,17 @@ export default function ConferenceSetupScreen() {
     fetch('/data/cities.json').then(r => r.json()).then(setCities);
   }, []);
 
+  useEffect(() => {
+    store.setControlBindings([
+      { action: 'dpadUp',    label: 'Navigate up' },
+      { action: 'dpadDown',  label: 'Navigate down' },
+      { action: 'A',         label: 'Select / open picker' },
+      { action: 'X',         label: 'Clear CCG city' },
+      { action: 'B',         label: store.conferenceSetupIndex > 0 ? 'Previous conference' : 'Back' },
+      { action: 'Start',     label: store.conferenceSetupIndex < (store.conferenceCount ?? 6) - 1 ? 'Next conference' : 'Finish setup' },
+    ]);
+  }, [store.conferenceSetupIndex, store.conferenceCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Flat, deduplicated list of all individual division name strings
   const flatDivisionNames = useMemo(() => {
     const all = [
@@ -187,6 +198,7 @@ export default function ConferenceSetupScreen() {
 
   // ── Gamepad — must be called unconditionally (no early return above this) ──
   useGamepad((action) => {
+    if (store.showControls) return;
     if (!conference) return;
     // City picker takes full priority
     if (isCityPickerOpen) {
@@ -496,17 +508,6 @@ export default function ConferenceSetupScreen() {
           )}
         </div>
 
-        {/* ── Gamepad footer hints ── */}
-        <div className="flex items-center justify-between pt-4 border-t border-border mt-2">
-          <div className="flex items-center gap-4">
-            <ControllerBadge action="B" label={confIndex > 0 ? 'Prev Conf' : 'Back'} active />
-            <ControllerBadge action="X" label="Clear City" active={!!conference.ccgCity} />
-          </div>
-          <div className="flex items-center gap-4">
-            <ControllerBadge action="A" label="Select / Open" active />
-            <ControllerBadge action="Start" label="CONTINUE" active={!cannotAdvance} />
-          </div>
-        </div>
 
       </div>{/* end content wrapper */}
 

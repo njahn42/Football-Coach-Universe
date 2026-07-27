@@ -16,6 +16,8 @@ export default function DraftTeamsScreen() {
   const setConferenceSetupIndex = useUniverseStore(s => s.setConferenceSetupIndex);
   const assignTeam = useUniverseStore(s => s.assignTeam);
   const removeTeamFromSlot = useUniverseStore(s => s.removeTeamFromSlot);
+  const showControls = useUniverseStore(s => s.showControls);
+  const setControlBindings = useUniverseStore(s => s.setControlBindings);
   
   const getDraftedTeamAbbrsFn = useUniverseStore(s => s.getDraftedTeamAbbrs);
   const getTotalDraftedCountFn = useUniverseStore(s => s.getTotalDraftedCount);
@@ -54,6 +56,19 @@ export default function DraftTeamsScreen() {
     setConferenceSetupIndex((conferenceCount ?? 6) - 1);
     setScreen('conference-setup');
   };
+
+  useEffect(() => {
+    setControlBindings([
+      { action: 'LB',       label: 'Switch panel' },
+      { action: 'RB',       label: 'Switch panel' },
+      { action: 'dpadUp',   label: 'Navigate up' },
+      { action: 'dpadDown', label: 'Navigate down' },
+      { action: 'A',        label: activePanel === 'left' ? 'Stage team' : (stagedTeam ? 'Assign to slot' : 'Remove from slot') },
+      { action: 'B',        label: stagedTeam ? 'Unstage' : 'Back' },
+      { action: 'Y',        label: activePanel === 'left' ? 'Reset filter' : `Sort: ${SORT_LABELS[confSort]}` },
+      { action: 'Start',    label: 'Continue to prestige review' },
+    ]);
+  }, [activePanel, stagedTeam, confSort, setControlBindings]);
 
   const isCapped = draftedCount >= MAX_DRAFTED_TEAMS;
   const canContinue = draftedCount > 0;
@@ -127,6 +142,7 @@ export default function DraftTeamsScreen() {
   }, [activePanel, leftFocusIndex, rightFocusIndex]);
 
   useGamepad((action) => {
+    if (showControls) return;
     if (action === 'LB' || action === 'RB') {
       setActivePanel(prev => prev === 'left' ? 'right' : 'left');
       return;
@@ -502,32 +518,6 @@ export default function DraftTeamsScreen() {
 
       </div>
       
-      {/* Footer Hints */}
-      <div className="h-20 border-t-2 border-border/60 bg-card/40 backdrop-blur-md flex items-center justify-between px-8 z-20 shrink-0">
-        <div className="flex items-center gap-6 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <ControllerBadge action="LB" label="PANEL" active={true} />
-          <ControllerBadge action="RB" label="PANEL" active={true} />
-          <div className="w-px h-8 bg-border/50 mx-1" />
-          <ControllerBadge action="dpadUp" label="NAV" active={true} />
-          <ControllerBadge action="dpadDown" label="NAV" active={true} />
-          <div className="w-px h-8 bg-border/50 mx-1" />
-          <ControllerBadge action="A" label={activePanel === 'left' ? 'STAGE' : stagedTeam ? 'ASSIGN' : 'REMOVE'} active={true} />
-          <ControllerBadge action="B" label={activePanel === 'right' ? 'BACK / UNSTAGE' : stagedTeam ? 'UNSTAGE' : 'BACK'} active={true} />
-          <ControllerBadge action="Y" label={activePanel === 'left' ? 'RESET FLT' : `SORT: ${SORT_LABELS[confSort]}`} active={true} />
-          <div className="w-px h-8 bg-border/50 mx-1 hidden lg:block" />
-          <div className="hidden lg:block">
-            <ControllerBadge action="Start" label="CONTINUE" active={canContinue} />
-          </div>
-        </div>
-        
-        <button
-          onClick={() => canContinue && setScreen('prestige-review')}
-          disabled={!canContinue}
-          className={`shrink-0 ml-6 px-8 py-3 rounded-full font-black tracking-widest transition-all flex items-center gap-3 ${canContinue ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.3)]' : 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'}`}
-        >
-          CONTINUE <span className="font-mono text-sm opacity-70">►</span>
-        </button>
-      </div>
     </div>
   );
 }

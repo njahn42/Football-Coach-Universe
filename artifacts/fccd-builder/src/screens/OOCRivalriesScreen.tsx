@@ -13,6 +13,8 @@ export default function OOCRivalriesScreen() {
   const addOOCRivalry = useUniverseStore(s => s.addOOCRivalry);
   const removeOOCRivalry = useUniverseStore(s => s.removeOOCRivalry);
   const setScreen     = useUniverseStore(s => s.setScreen);
+  const showControls  = useUniverseStore(s => s.showControls);
+  const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
   const [step,  setStep]  = useState<Step>('list');
   const [listFocus, setListFocus] = useState(0);
@@ -58,6 +60,17 @@ export default function OOCRivalriesScreen() {
     setTeamFocus(i => Math.min(i, Math.max(0, filteredTeams.length - 1)));
   }, [filteredTeams.length]);
 
+  useEffect(() => {
+    setControlBindings([
+      { action: 'Y',        label: 'Add OOC rivalry' },
+      { action: 'dpadUp',   label: 'Navigate' },
+      { action: 'dpadDown', label: 'Navigate' },
+      { action: 'X',        label: 'Remove rivalry' },
+      { action: 'B',        label: 'Back to rivalries' },
+      { action: 'Start',    label: 'Continue to bowl draft' },
+    ]);
+  }, [setControlBindings]);
+
   function resetFlow() {
     setStep('list');
     setTeamA(null); setTeamB(null);
@@ -74,6 +87,7 @@ export default function OOCRivalriesScreen() {
   const cadenceLabel = (n: number) => n === 1 ? 'EVERY YR' : `EVERY ${n} YRS`;
 
   useGamepad((action) => {
+    if (showControls) return;
     if (step === 'list') {
       if (action === 'dpadUp')   setListFocus(i => Math.max(0, i - 1));
       else if (action === 'dpadDown') setListFocus(i => Math.min(oocRivalries.length - 1, i + 1));
@@ -198,18 +212,6 @@ export default function OOCRivalriesScreen() {
         })}
       </div>
 
-      {/* ── Footer ── */}
-      <div className="h-16 border-t border-border/60 bg-card/40 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-4">
-          <ControllerBadge action="Y" label="ADD RIVALRY" active />
-          <div className="w-px h-6 bg-border/50" />
-          <ControllerBadge action="dpadUp" label="NAV" active />
-          <ControllerBadge action="dpadDown" label="NAV" active />
-          <ControllerBadge action="X" label="REMOVE" active={oocRivalries.length > 0} />
-          <ControllerBadge action="B" label="BACK" active />
-        </div>
-        <ControllerBadge action="Start" label="CONTINUE" active />
-      </div>
 
       {/* ── Overlay ── */}
       {overlayShowing && (
