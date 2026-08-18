@@ -60,6 +60,18 @@ function mapArchetype(raw: string): string {
   return ARCHETYPE_MAP[raw] ?? 'balanced';
 }
 
+// fanbaseType mapping: source values → game-expected values
+const FANBASE_TYPE_MAP: Record<string, string> = {
+  casual:    'reasonable',
+  passionate: 'ride-or-die',
+  loyal:     'stubborn',
+  'fair-weather': 'volatile',
+};
+
+function mapFanbaseType(raw: string): string {
+  return FANBASE_TYPE_MAP[raw] ?? 'reasonable';
+}
+
 // ─── JSON assembly ────────────────────────────────────────────────────────────
 
 export function generateUniverseExport(
@@ -84,6 +96,7 @@ export function generateUniverseExport(
         .map(team => ({
           ...team,
           archetype: mapArchetype(team.archetype),
+          fanbaseType: mapFanbaseType(team.fanbaseType),
           rivalAbbreviation: rivalries[team.abbreviation] ?? '',
         }));
       return { name: div.name, teams };
