@@ -179,10 +179,26 @@ export interface ValidationResult {
 
 // ─── Export JSON shapes ───────────────────────────────────────────────────────
 
-/** Team as it appears in the exported JSON (adds rivalAbbreviation, remaps division). */
-export interface ExportedTeam extends Omit<Team, 'division'> {
-  /** Lowercased for the game's schema: 'fbs' | 'fcs'. */
-  division: string;
+/** Team as it appears in the exported JSON — only the fields the game expects. */
+export interface ExportedTeam {
+  abbreviation: string;
+  name: string;
+  mascot: string;
+  primaryColor: string;
+  secondaryColor: string;
+  zipcode: string;
+  attributes: {
+    prestige: number;
+    facilities: number;
+    stadium: number;
+    collegeLife: number;
+    academics: number;
+    marketing: number;
+    attendance: number;
+    fanbaseLevel: number;
+  };
+  archetype: string;
+  fanbaseType: string;
   rivalAbbreviation: string;
 }
 
@@ -198,11 +214,17 @@ export interface ExportedConference {
   divisions: ExportedDivision[];
 }
 
+/** Bowl tieIn as written to the export JSON — matches the game's schema. */
+export interface ExportedBowlTieIn {
+  first?:  string | string[];   // single conf or [primary, backup, ...]
+  second?: string | string[];
+}
+
 export interface ExportedBowlGame {
   name: string;
   zipcode: string;
   indoors: boolean;
-  tieIn?: BowlTieIn; // omitted if all slots are empty
+  tieIn?: ExportedBowlTieIn; // omitted if no tie-ins set
 }
 
 export interface UniverseExport {

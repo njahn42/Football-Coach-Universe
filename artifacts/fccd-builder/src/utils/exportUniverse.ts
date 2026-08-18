@@ -9,6 +9,7 @@ import type {
   ExportedDivision,
   ExportedTeam,
   ExportedBowlGame,
+  ExportedBowlTieIn,
 } from '@/types';
 
 // ─── Filename normalization for logo paths ─────────────────────────────────────
@@ -107,14 +108,25 @@ export function generateUniverseExport(
       const teams: ExportedTeam[] = div.teams
         .filter((t): t is NonNullable<typeof t> => t != null)
         .map(team => ({
-          ...team,
-          division: mapDivision(team.division),
-          archetype: mapArchetype(team.archetype),
-          fanbaseType: mapFanbaseType(team.fanbaseType),
+          // Explicit field list — no extra top-level fields from teams.json
+          abbreviation:     team.abbreviation,
+          name:             team.name,
+          mascot:           team.mascot,
+          primaryColor:     team.primaryColor,
+          secondaryColor:   team.secondaryColor,
+          zipcode:          team.zipcode,
           attributes: {
-            ...team.attributes,
-            attendance: team.attendance,
+            prestige:     team.attributes.prestige,
+            facilities:   team.attributes.facilities,
+            stadium:      team.attributes.stadium,
+            collegeLife:  team.attributes.collegeLife,
+            academics:    team.attributes.academics,
+            marketing:    team.attributes.marketing,
+            attendance:   team.attendance,   // top-level → nested
+            fanbaseLevel: team.attributes.fanbaseLevel,
           },
+          archetype:        mapArchetype(team.archetype),
+          fanbaseType:      mapFanbaseType(team.fanbaseType),
           rivalAbbreviation: rivalries[team.abbreviation] ?? '',
         }));
       const divName = div.name || (singleDiv ? conf.name : `Division ${divIdx + 1}`);
@@ -130,26 +142,31 @@ export function generateUniverseExport(
   });
 
   const exportedBowls: ExportedBowlGame[] = selectedBowls.map(({ bowl, tieIn }) => {
-    const hasTieIn = !!(
-      tieIn.slot1Primary ||
-      tieIn.slot1Backup ||
-      tieIn.slot2Primary ||
-      tieIn.slot2Backup
-    );
     const base: ExportedBowlGame = {
       name: bowl.name,
       zipcode: bowl.zipcode,
       indoors: bowl.indoors,
     };
-    if (hasTieIn) {
-      // Strip empty strings from tieIn before including
-      const cleanTieIn: Record<string, string> = {};
-      if (tieIn.slot1Primary) cleanTieIn.slot1Primary = tieIn.slot1Primary;
-      if (tieIn.slot1Backup)  cleanTieIn.slot1Backup  = tieIn.slot1Backup;
-      if (tieIn.slot2Primary) cleanTieIn.slot2Primary = tieIn.slot2Primary;
-      if (tieIn.slot2Backup)  cleanTieIn.slot2Backup  = tieIn.slot2Backup;
-      base.tieIn = cleanTieIn;
+
+    // Build first/second in the game's format:
+    //   single conf  → "ConfName"
+    //   primary + backup → ["Primary", "Backup"]
+    //   no conf set  → omit the key
+    const buildSlot = (primary?: string, backup?: string) => {
+      if (!primary) return undefined;
+      return backup ? [primary, backup] : primary;
+    };
+
+    const first  = buildSlot(tieIn.slot1Primary, tieIn.slot1Backup);
+    const second = buildSlot(tieIn.slot2Primary, tieIn.slot2Backup);
+
+    if (first !== undefined || second !== undefined) {
+      const exportTieIn: Record<string, string | string[]> = {};
+      if (first  !== undefined) exportTieIn.first  = first;
+      if (second !== undefined) exportTieIn.second = second;
+      base.tieIn = exportTieIn as ExportedBowlTieIn;
     }
+
     return base;
   });
 
