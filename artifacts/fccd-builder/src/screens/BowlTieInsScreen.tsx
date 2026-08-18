@@ -98,14 +98,22 @@ export default function BowlTieInsScreen() {
     setBowlIdx(i => Math.min(i, Math.max(0, bowlCount - 1)));
   }, [bowlCount]);
 
-  // Clamp entryFocus when the focused slot's entry list shrinks
+  // Clamp entryFocus when the focused slot's entry list shrinks.
+  // When the primary is cleared, always reset to 0 so focus never lands on
+  // a backup entry while the "+ Add backup" row is invisible (orphaned focus).
   useEffect(() => {
     if (!focusedBowl) return;
     const backupsKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Backups' : 'slot2Backups';
     const primaryKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Primary' : 'slot2Primary';
     const backups = (focusedBowl.tieIn[backupsKey] as string[] | undefined) ?? [];
     const primary = (focusedBowl.tieIn[primaryKey] as string) ?? '';
-    const canAddBackup = !!primary && backups.length < MAX_BACKUPS;
+    if (!primary) {
+      // Primary was cleared — snap focus back to the primary row so the user
+      // is never left on a backup while canAddBackup is false.
+      setEntryFocus(0);
+      return;
+    }
+    const canAddBackup = backups.length < MAX_BACKUPS;
     const maxEntry = canAddBackup ? backups.length + 1 : backups.length;
     setEntryFocus(e => Math.min(e, maxEntry));
   }, [focusedBowl, slotFocus]);
@@ -183,6 +191,12 @@ export default function BowlTieInsScreen() {
 
     // ── dpadLeft / dpadRight: cycle the conference for whichever entry is focused ──
     if (action === 'dpadLeft' || action === 'dpadRight') {
+      // Guard: if focus is beyond the current max (e.g. primary was just cleared
+      // and the clamp effect hasn't fired yet), snap to 0 instead of a silent no-op.
+      if (entryFocus > maxEntry) {
+        setEntryFocus(0);
+        return;
+      }
       if (entryFocus === 0) {
         // Cycle primary
         const opts = getAvailableConfs(bowlIdx, primary);
