@@ -179,8 +179,10 @@ export interface ValidationResult {
 
 // ─── Export JSON shapes ───────────────────────────────────────────────────────
 
-/** Team as it appears in the exported JSON (adds rivalAbbreviation). */
-export interface ExportedTeam extends Team {
+/** Team as it appears in the exported JSON (adds rivalAbbreviation, remaps division). */
+export interface ExportedTeam extends Omit<Team, 'division'> {
+  /** Lowercased for the game's schema: 'fbs' | 'fcs'. */
+  division: string;
   rivalAbbreviation: string;
 }
 

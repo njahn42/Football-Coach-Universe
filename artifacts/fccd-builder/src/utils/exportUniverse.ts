@@ -39,6 +39,18 @@ export function buildExportFilename(universeName: string): string {
   return `${safe}_${today}`;
 }
 
+// ─── Division mapping ─────────────────────────────────────────────────────────
+// teams.json stores "FBS" / "FCS" (uppercase NCAA classifications); the game
+// validator expects lowercase values.
+const DIVISION_MAP: Record<string, string> = {
+  FBS: 'fbs',
+  FCS: 'fcs',
+};
+
+function mapDivision(raw: string): string {
+  return DIVISION_MAP[raw] ?? raw.toLowerCase();
+}
+
 // ─── Archetype mapping ────────────────────────────────────────────────────────
 // teams.json stores football-strategy archetypes; the game validates against
 // school-identity archetypes. Map each source value to the closest game value.
@@ -95,6 +107,7 @@ export function generateUniverseExport(
         .filter((t): t is NonNullable<typeof t> => t != null)
         .map(team => ({
           ...team,
+          division: mapDivision(team.division),
           archetype: mapArchetype(team.archetype),
           fanbaseType: mapFanbaseType(team.fanbaseType),
           attributes: {
