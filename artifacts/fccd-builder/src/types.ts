@@ -136,8 +136,8 @@ export interface LastAssignment {
 // ─── OOC Rivalries (Screen 7) ─────────────────────────────────────────────────
 
 export interface OOCRivalry {
-  teamAAbbr: string;
-  teamBAbbr: string;
+  teamA: string;
+  teamB: string;
   /** Week slot in the season (1–15). */
   preferredSlot: number;
   /** Play cadence: 1 = every year, 2 = every other year, etc. (1–4). */
@@ -233,7 +233,7 @@ export interface UniverseExport {
   startingMessage: string;
   conferences: ExportedConference[];
   bowlGames: ExportedBowlGame[];
-  oocRivalries?: OOCRivalry[]; // omitted entirely if empty
+  oocRivalries?: Omit<OOCRivalry, 'offset'>[]; // omitted entirely if empty; offset is internal only
 }
 
 // ─── Screens ──────────────────────────────────────────────────────────────────

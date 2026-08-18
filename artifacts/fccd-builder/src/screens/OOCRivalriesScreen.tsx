@@ -80,7 +80,7 @@ export default function OOCRivalriesScreen() {
 
   function confirmAdd() {
     if (!teamA || !teamB) return;
-    addOOCRivalry({ teamAAbbr: teamA.abbreviation, teamBAbbr: teamB.abbreviation, preferredSlot: slot, cadence, offset });
+    addOOCRivalry({ teamA: teamA.abbreviation, teamB: teamB.abbreviation, preferredSlot: slot, cadence, offset });
     resetFlow();
   }
 
@@ -166,8 +166,8 @@ export default function OOCRivalriesScreen() {
             <p className="text-xs opacity-70">Press Y or click Add Rivalry to create cross-conference series</p>
           </div>
         ) : oocRivalries.map((r, idx) => {
-          const tA = teamMap.get(r.teamAAbbr);
-          const tB = teamMap.get(r.teamBAbbr);
+          const tA = teamMap.get(r.teamA);
+          const tB = teamMap.get(r.teamB);
           const isFocused = idx === listFocus;
           return (
             <div
@@ -179,8 +179,8 @@ export default function OOCRivalriesScreen() {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: tA?.primaryColor ?? '#666' }} />
                 <div>
-                  <div className="font-mono font-black">{r.teamAAbbr}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[100px]">{tA?.name ?? r.teamAAbbr}</div>
+                  <div className="font-mono font-black">{r.teamA}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[100px]">{tA?.name ?? r.teamA}</div>
                 </div>
               </div>
 
@@ -190,8 +190,8 @@ export default function OOCRivalriesScreen() {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: tB?.primaryColor ?? '#666' }} />
                 <div>
-                  <div className="font-mono font-black">{r.teamBAbbr}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[100px]">{tB?.name ?? r.teamBAbbr}</div>
+                  <div className="font-mono font-black">{r.teamB}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[100px]">{tB?.name ?? r.teamB}</div>
                 </div>
               </div>
 

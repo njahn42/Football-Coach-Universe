@@ -105,10 +105,10 @@ export function useValidation(input: ValidationInput): ValidationResult[] {
     const oocPairs = new Set<string>();
     const oocDupes: string[] = [];
     for (const r of oocRivalries) {
-      const key1 = `${r.teamAAbbr}:${r.teamBAbbr}`;
-      const key2 = `${r.teamBAbbr}:${r.teamAAbbr}`;
+      const key1 = `${r.teamA}:${r.teamB}`;
+      const key2 = `${r.teamB}:${r.teamA}`;
       if (oocPairs.has(key1) || oocPairs.has(key2)) {
-        oocDupes.push(`${r.teamAAbbr} vs ${r.teamBAbbr}`);
+        oocDupes.push(`${r.teamA} vs ${r.teamB}`);
       }
       oocPairs.add(key1);
     }

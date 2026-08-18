@@ -179,7 +179,13 @@ export function generateUniverseExport(
   };
 
   if (oocRivalries.length > 0) {
-    result.oocRivalries = oocRivalries;
+    // Export only the fields the game schema expects — strip internal `offset`
+    result.oocRivalries = oocRivalries.map(({ teamA, teamB, preferredSlot, cadence }) => ({
+      teamA,
+      teamB,
+      preferredSlot,
+      cadence,
+    }));
   }
 
   return result;

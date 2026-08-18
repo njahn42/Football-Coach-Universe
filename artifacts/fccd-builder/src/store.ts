@@ -409,12 +409,12 @@ export const useUniverseStore = create<UniverseState>()(
         // Validate: no duplicates (either order)
         const dupe = oocRivalries.some(
           r =>
-            (r.teamAAbbr === entry.teamAAbbr && r.teamBAbbr === entry.teamBAbbr) ||
-            (r.teamAAbbr === entry.teamBAbbr && r.teamBAbbr === entry.teamAAbbr),
+            (r.teamA === entry.teamA && r.teamB === entry.teamB) ||
+            (r.teamA === entry.teamB && r.teamB === entry.teamA),
         );
         if (dupe) return;
         // Validate: teamA ≠ teamB
-        if (entry.teamAAbbr === entry.teamBAbbr) return;
+        if (entry.teamA === entry.teamB) return;
         // Clamp offset
         const clamped = { ...entry, offset: Math.min(entry.offset, entry.cadence - 1) };
         set({ oocRivalries: [...oocRivalries, clamped] });
@@ -475,6 +475,24 @@ export const useUniverseStore = create<UniverseState>()(
     }),
     {
       name: 'fccd-universe-draft',
+      version: 1,
+      migrate: (persistedState: unknown, fromVersion: number) => {
+        const s = (persistedState ?? {}) as Record<string, unknown>;
+        if (fromVersion < 1) {
+          // v0 → v1: rename teamAAbbr/teamBAbbr → teamA/teamB in oocRivalries
+          const raw = s.oocRivalries;
+          if (Array.isArray(raw)) {
+            s.oocRivalries = raw.map((r: Record<string, unknown>) => {
+              if ('teamAAbbr' in r || 'teamBAbbr' in r) {
+                const { teamAAbbr, teamBAbbr, ...rest } = r;
+                return { ...rest, teamA: teamAAbbr, teamB: teamBAbbr };
+              }
+              return r;
+            });
+          }
+        }
+        return s;
+      },
       partialize: (state) => {
         // Exclude transient/re-fetchable data from localStorage
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
