@@ -39,6 +39,27 @@ export function buildExportFilename(universeName: string): string {
   return `${safe}_${today}`;
 }
 
+// ─── Archetype mapping ────────────────────────────────────────────────────────
+// teams.json stores football-strategy archetypes; the game validates against
+// school-identity archetypes. Map each source value to the closest game value.
+const ARCHETYPE_MAP: Record<string, string> = {
+  balance:     'balanced',
+  tradition:   'tradition-rich',
+  rivalry:     'tradition-rich',
+  academic:    'academic-powerhouse',
+  athletes:    'the-main-attraction',
+  recruiting:  'the-main-attraction',
+  speed:       'future-forward',
+  passing:     'media-mogul',
+  line:        'football-focused',
+  defense:     'football-focused',
+  development: 'football-focused',
+};
+
+function mapArchetype(raw: string): string {
+  return ARCHETYPE_MAP[raw] ?? 'balanced';
+}
+
 // ─── JSON assembly ────────────────────────────────────────────────────────────
 
 export function generateUniverseExport(
@@ -62,6 +83,7 @@ export function generateUniverseExport(
         .filter((t): t is NonNullable<typeof t> => t != null)
         .map(team => ({
           ...team,
+          archetype: mapArchetype(team.archetype),
           rivalAbbreviation: rivalries[team.abbreviation] ?? '',
         }));
       return { name: div.name, teams };
