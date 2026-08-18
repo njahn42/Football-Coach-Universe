@@ -102,7 +102,8 @@ export function generateUniverseExport(
     const prestige = prestigeMap.get(conf.id) ?? 5;
     const zipcode = conf.ccgCity?.zipcode ?? '';
 
-    const divisions: ExportedDivision[] = conf.divisions.map(div => {
+    const divisions: ExportedDivision[] = conf.divisions.map((div, divIdx) => {
+      const singleDiv = conf.divisions.length === 1;
       const teams: ExportedTeam[] = div.teams
         .filter((t): t is NonNullable<typeof t> => t != null)
         .map(team => ({
@@ -116,7 +117,8 @@ export function generateUniverseExport(
           },
           rivalAbbreviation: rivalries[team.abbreviation] ?? '',
         }));
-      return { name: div.name, teams };
+      const divName = div.name || (singleDiv ? conf.name : `Division ${divIdx + 1}`);
+      return { name: divName, teams };
     });
 
     return {
