@@ -1,5 +1,27 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GamepadAction, GAMEPAD_BUTTON_MAP } from '@/types';
+
+/** Returns true while at least one gamepad is plugged in / paired. */
+export function useGamepadConnected(): boolean {
+  const [connected, setConnected] = useState(() =>
+    typeof navigator !== 'undefined' &&
+    Array.from(navigator.getGamepads()).some(Boolean),
+  );
+
+  useEffect(() => {
+    const onConnect = () => setConnected(true);
+    const onDisconnect = () =>
+      setConnected(Array.from(navigator.getGamepads()).some(Boolean));
+    window.addEventListener('gamepadconnected', onConnect);
+    window.addEventListener('gamepaddisconnected', onDisconnect);
+    return () => {
+      window.removeEventListener('gamepadconnected', onConnect);
+      window.removeEventListener('gamepaddisconnected', onDisconnect);
+    };
+  }, []);
+
+  return connected;
+}
 
 export function useGamepad(onAction: (action: GamepadAction) => void) {
   const onActionRef = useRef(onAction);

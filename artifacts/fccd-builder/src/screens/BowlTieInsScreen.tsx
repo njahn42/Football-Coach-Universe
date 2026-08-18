@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUniverseStore } from '@/store';
-import { useGamepad } from '@/hooks/useGamepad';
+import { useGamepad, useGamepadConnected } from '@/hooks/useGamepad';
 import { ControllerBadge } from '@/components/ControllerBadge';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { BowlTieIn } from '@/types';
@@ -21,6 +21,8 @@ export default function BowlTieInsScreen() {
   const setScreen          = useUniverseStore(s => s.setScreen);
   const showControls       = useUniverseStore(s => s.showControls);
   const setControlBindings = useUniverseStore(s => s.setControlBindings);
+
+  const gamepadConnected = useGamepadConnected();
 
   const [bowlIdx,    setBowlIdx]    = useState(0);
   const [slotFocus,  setSlotFocus]  = useState<0 | 1>(0); // 0 = SLOT 1, 1 = SLOT 2
@@ -389,6 +391,9 @@ export default function BowlTieInsScreen() {
                       <option value={backup}>{backup} ⚠ over cap</option>
                     )}
                   </select>
+                  {gamepadConnected && isEntryFocused(ei) && (
+                    <ControllerBadge action="Y" active />
+                  )}
                   <button
                     onClick={e => { e.stopPropagation(); removeBackup(bi); }}
                     className="w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-red-400 transition-colors text-xs shrink-0"
@@ -404,12 +409,15 @@ export default function BowlTieInsScreen() {
         {canAddBackup && (
           <button
             onClick={e => { e.stopPropagation(); addBackup(); }}
-            className={`w-full py-1.5 rounded-lg border border-dashed text-xs font-mono transition-all ${
+            className={`w-full py-1.5 rounded-lg border border-dashed text-xs font-mono transition-all flex items-center justify-center gap-2 ${
               isEntryFocused(addBackupEntryIdx)
                 ? 'border-primary text-primary bg-primary/5 ring-2 ring-primary ring-offset-1 ring-offset-background'
                 : 'border-border/50 text-muted-foreground/60 hover:border-primary/50 hover:text-primary'
             }`}
           >
+            {gamepadConnected && isEntryFocused(addBackupEntryIdx) && (
+              <ControllerBadge action="A" active />
+            )}
             + Add backup
           </button>
         )}
