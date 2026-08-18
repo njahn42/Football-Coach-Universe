@@ -97,6 +97,10 @@ export function generateUniverseExport(
           ...team,
           archetype: mapArchetype(team.archetype),
           fanbaseType: mapFanbaseType(team.fanbaseType),
+          attributes: {
+            ...team.attributes,
+            attendance: team.attendance,
+          },
           rivalAbbreviation: rivalries[team.abbreviation] ?? '',
         }));
       return { name: div.name, teams };
