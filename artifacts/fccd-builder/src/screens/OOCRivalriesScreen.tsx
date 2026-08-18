@@ -114,7 +114,7 @@ export default function OOCRivalriesScreen() {
         const d = action === 'dpadLeft' ? -1 : 1;
         if (stepperFocus === 0) setSlot(s => Math.max(1, Math.min(15, s + d)));
         else if (stepperFocus === 1) {
-          const nc = Math.max(1, Math.min(4, cadence + d));
+          const nc = Math.max(1, Math.min(10, cadence + d));
           setCadence(nc);
           setOffset(o => Math.min(o, nc - 1));
         } else {
@@ -305,7 +305,7 @@ export default function OOCRivalriesScreen() {
               <div className="flex items-stretch gap-6">
                 {([
                   { label: 'SLOT', value: slot, min: 1, max: 15, display: `Week ${slot}` },
-                  { label: 'CADENCE', value: cadence, min: 1, max: 4, display: cadenceLabel(cadence) },
+                  { label: 'CADENCE', value: cadence, min: 1, max: 10, display: cadenceLabel(cadence) },
                   { label: 'OFFSET', value: offset, min: 0, max: cadence - 1, display: `Year ${offset}` },
                 ] as const).map(({ label, value, min, max, display }, i) => {
                   const isFocused = stepperFocus === i;

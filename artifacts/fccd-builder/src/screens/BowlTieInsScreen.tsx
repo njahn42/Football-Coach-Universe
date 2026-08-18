@@ -5,16 +5,13 @@ import { ControllerBadge } from '@/components/ControllerBadge';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { BowlTieIn } from '@/types';
 
-const SLOTS: { key: keyof BowlTieIn; label: string; group: 'SLOT 1' | 'SLOT 2' }[] = [
-  { key: 'slot1Primary', label: 'Primary', group: 'SLOT 1' },
-  { key: 'slot1Backup',  label: 'Backup',  group: 'SLOT 1' },
-  { key: 'slot2Primary', label: 'Primary', group: 'SLOT 2' },
-  { key: 'slot2Backup',  label: 'Backup',  group: 'SLOT 2' },
-];
+const MAX_BACKUPS = 5; // max backup conferences per slot (reference shows up to 4–5)
 
-function filledCount(tieIn: BowlTieIn): number {
-  return [tieIn.slot1Primary, tieIn.slot1Backup, tieIn.slot2Primary, tieIn.slot2Backup]
-    .filter(Boolean).length;
+function totalAssigned(tieIn: BowlTieIn): number {
+  return (tieIn.slot1Primary ? 1 : 0)
+    + (tieIn.slot1Backups?.filter(Boolean).length ?? 0)
+    + (tieIn.slot2Primary ? 1 : 0)
+    + (tieIn.slot2Backups?.filter(Boolean).length ?? 0);
 }
 
 export default function BowlTieInsScreen() {
@@ -25,8 +22,8 @@ export default function BowlTieInsScreen() {
   const showControls       = useUniverseStore(s => s.showControls);
   const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
-  const [bowlIdx, setBowlIdx] = useState(0);
-  const [slotIdx, setSlotIdx] = useState(0);
+  const [bowlIdx,   setBowlIdx]   = useState(0);
+  const [slotFocus, setSlotFocus] = useState<0 | 1>(0); // 0 = SLOT 1, 1 = SLOT 2
 
   const bowlCount   = selectedBowls.length;
   const focusedBowl = selectedBowls[bowlIdx] ?? null;
@@ -48,38 +45,46 @@ export default function BowlTieInsScreen() {
     [confTeamCounts],
   );
 
-  // Total tie-in slots used per conference across all bowls
+  // Total tie-in slots used per conference across all bowls (primaries + all backups)
   const confTieInTotals = useMemo(() => {
     const map = new Map<string, number>();
     for (const { tieIn } of selectedBowls) {
-      for (const v of [tieIn.slot1Primary, tieIn.slot1Backup, tieIn.slot2Primary, tieIn.slot2Backup]) {
+      const all = [
+        tieIn.slot1Primary,
+        ...(tieIn.slot1Backups ?? []),
+        tieIn.slot2Primary,
+        ...(tieIn.slot2Backups ?? []),
+      ];
+      for (const v of all) {
         if (v) map.set(v, (map.get(v) ?? 0) + 1);
       }
     }
     return map;
   }, [selectedBowls]);
 
-  // Options for a specific slot — enforces per-bowl uniqueness + per-conf capacity
-  const getOptions = useCallback((bIdx: number, slotKey: keyof BowlTieIn): string[] => {
+  // Available conferences for a given cell, given its current value
+  // Enforces: per-bowl uniqueness + per-conf capacity
+  const getAvailableConfs = useCallback((bIdx: number, currentValue: string): string[] => {
     const entry = selectedBowls[bIdx];
     if (!entry) return [];
     const { tieIn } = entry;
-    const current = tieIn[slotKey] ?? '';
 
-    // Conferences already used in other slots of this bowl
+    // All confs currently assigned anywhere in this bowl (except this cell's own value)
     const usedInBowl = new Set<string>();
-    for (const { key } of SLOTS) {
-      if (key !== slotKey) {
-        const v = tieIn[key] ?? '';
-        if (v) usedInBowl.add(v);
-      }
+    const allInBowl = [
+      tieIn.slot1Primary,
+      ...(tieIn.slot1Backups ?? []),
+      tieIn.slot2Primary,
+      ...(tieIn.slot2Backups ?? []),
+    ];
+    for (const v of allInBowl) {
+      if (v && v !== currentValue) usedInBowl.add(v);
     }
 
     return confNames.filter(name => {
       if (usedInBowl.has(name)) return false;
-      // Capacity: exclude if already at team-count limit, but don't penalise current value
       const total    = confTieInTotals.get(name) ?? 0;
-      const selfUsed = current === name ? 1 : 0;
+      const selfUsed = currentValue === name ? 1 : 0;
       const effective = total - selfUsed;
       const capacity  = confTeamCounts.get(name) ?? 0;
       if (effective >= capacity) return false;
@@ -93,15 +98,15 @@ export default function BowlTieInsScreen() {
 
   useEffect(() => {
     setControlBindings([
-      { action: 'LB',       label: 'Previous bowl' },
-      { action: 'RB',       label: 'Next bowl' },
-      { action: 'dpadUp',   label: 'Previous slot' },
-      { action: 'dpadDown', label: 'Next slot' },
-      { action: 'dpadLeft', label: 'Cycle conference' },
-      { action: 'dpadRight',label: 'Cycle conference' },
-      { action: 'X',        label: 'Clear slot' },
-      { action: 'B',        label: 'Back to Bowl Draft' },
-      { action: 'Start',    label: 'Continue to Review' },
+      { action: 'LB',        label: 'Previous bowl' },
+      { action: 'RB',        label: 'Next bowl' },
+      { action: 'dpadUp',    label: 'Focus Slot 1' },
+      { action: 'dpadDown',  label: 'Focus Slot 2' },
+      { action: 'dpadLeft',  label: 'Cycle primary' },
+      { action: 'dpadRight', label: 'Cycle primary' },
+      { action: 'X',         label: 'Clear primary' },
+      { action: 'B',         label: 'Back to Bowl Draft' },
+      { action: 'Start',     label: 'Continue to Review' },
     ]);
   }, [setControlBindings]);
 
@@ -109,33 +114,166 @@ export default function BowlTieInsScreen() {
     if (showControls) return;
     if (action === 'Start') { setScreen('review-export'); return; }
     if (action === 'B')     { setScreen('bowl-draft');    return; }
-    if (action === 'LB') { setBowlIdx(i => Math.max(0, i - 1)); setSlotIdx(0); return; }
-    if (action === 'RB') { setBowlIdx(i => Math.min(bowlCount - 1, i + 1)); setSlotIdx(0); return; }
-    if (action === 'dpadUp')   { setSlotIdx(i => Math.max(0, i - 1)); return; }
-    if (action === 'dpadDown') { setSlotIdx(i => Math.min(SLOTS.length - 1, i + 1)); return; }
+    if (action === 'LB') { setBowlIdx(i => Math.max(0, i - 1)); setSlotFocus(0); return; }
+    if (action === 'RB') { setBowlIdx(i => Math.min(bowlCount - 1, i + 1)); setSlotFocus(0); return; }
+    if (action === 'dpadUp')   { setSlotFocus(0); return; }
+    if (action === 'dpadDown') { setSlotFocus(1); return; }
 
     if (!focusedBowl) return;
-    const slotKey = SLOTS[slotIdx].key;
-    const current = focusedBowl.tieIn[slotKey] ?? '';
+    const primaryKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Primary' : 'slot2Primary';
+    const current = focusedBowl.tieIn[primaryKey] as string ?? '';
 
     if (action === 'X') {
-      setBowlTieIn(bowlIdx, { [slotKey]: '' });
+      setBowlTieIn(bowlIdx, { [primaryKey]: '' });
       return;
     }
 
     if (action === 'dpadLeft' || action === 'dpadRight') {
-      const opts = getOptions(bowlIdx, slotKey);
+      const opts = getAvailableConfs(bowlIdx, current);
       if (opts.length === 0) return;
       const curIdx = current ? opts.indexOf(current) : -1;
       if (action === 'dpadLeft') {
         const next = curIdx <= 0 ? opts.length - 1 : curIdx - 1;
-        setBowlTieIn(bowlIdx, { [slotKey]: opts[next] });
+        setBowlTieIn(bowlIdx, { [primaryKey]: opts[next] });
       } else {
         const next = curIdx >= opts.length - 1 ? 0 : curIdx + 1;
-        setBowlTieIn(bowlIdx, { [slotKey]: opts[next] });
+        setBowlTieIn(bowlIdx, { [primaryKey]: opts[next] });
       }
     }
   });
+
+  // ── Slot section renderer ───────────────────────────────────────────────────
+  const renderSlot = (slotNum: 1 | 2) => {
+    if (!focusedBowl) return null;
+    const isFocused  = slotFocus === (slotNum - 1);
+    const primaryKey: keyof BowlTieIn = slotNum === 1 ? 'slot1Primary' : 'slot2Primary';
+    const backupsKey: keyof BowlTieIn = slotNum === 1 ? 'slot1Backups' : 'slot2Backups';
+    const { tieIn } = focusedBowl;
+    const primary = (tieIn[primaryKey] as string) ?? '';
+    const backups = (tieIn[backupsKey] as string[] | undefined) ?? [];
+
+    const primaryOpts  = getAvailableConfs(bowlIdx, primary);
+    const canAddBackup = !!primary && backups.length < MAX_BACKUPS;
+
+    const addBackup = () => {
+      const opts = getAvailableConfs(bowlIdx, '');
+      if (opts.length === 0) return;
+      setBowlTieIn(bowlIdx, { [backupsKey]: [...backups, opts[0]] });
+    };
+
+    const updateBackup = (idx: number, value: string) => {
+      const next = [...backups];
+      next[idx] = value;
+      setBowlTieIn(bowlIdx, { [backupsKey]: next });
+    };
+
+    const removeBackup = (idx: number) => {
+      setBowlTieIn(bowlIdx, { [backupsKey]: backups.filter((_, i) => i !== idx) });
+    };
+
+    return (
+      <div
+        key={`slot-${slotNum}`}
+        onClick={() => setSlotFocus((slotNum - 1) as 0 | 1)}
+        className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+          isFocused
+            ? 'border-ring bg-card shadow-md'
+            : 'border-border/40 bg-background/30 hover:border-border'
+        }`}
+      >
+        {/* Section label */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-xs font-mono font-black text-muted-foreground tracking-widest">
+            SLOT {slotNum}
+          </span>
+          <div className="flex-1 h-px bg-border/40" />
+          {isFocused && (
+            <span className="text-xs text-muted-foreground/50 font-mono">◀ ▶ cycle · X clear</span>
+          )}
+        </div>
+
+        {/* Primary */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-mono text-muted-foreground">Primary</span>
+            {primary && (
+              <button
+                onClick={e => { e.stopPropagation(); setBowlTieIn(bowlIdx, { [primaryKey]: '' }); }}
+                className="text-muted-foreground/50 hover:text-red-400 text-xs transition-colors"
+                title="Clear primary"
+              >✕</button>
+            )}
+          </div>
+          <select
+            value={primary}
+            onChange={e => {
+              setSlotFocus((slotNum - 1) as 0 | 1);
+              setBowlTieIn(bowlIdx, { [primaryKey]: e.target.value });
+            }}
+            onClick={e => e.stopPropagation()}
+            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:border-primary"
+          >
+            <option value="">— AT-LARGE —</option>
+            {primaryOpts.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+            {primary && !primaryOpts.includes(primary) && (
+              <option value={primary}>{primary} ⚠ over cap</option>
+            )}
+          </select>
+        </div>
+
+        {/* Backup list */}
+        {backups.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {backups.map((backup, bi) => {
+              const backupOpts = getAvailableConfs(bowlIdx, backup);
+              return (
+                <div key={bi} className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted-foreground/60 w-16 shrink-0">
+                    Backup {bi + 1}
+                  </span>
+                  <select
+                    value={backup}
+                    onChange={e => { e.stopPropagation(); updateBackup(bi, e.target.value); }}
+                    onClick={e => e.stopPropagation()}
+                    className="flex-1 px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:border-primary"
+                  >
+                    <option value="">— select —</option>
+                    {backupOpts.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                    {backup && !backupOpts.includes(backup) && (
+                      <option value={backup}>{backup} ⚠ over cap</option>
+                    )}
+                  </select>
+                  <button
+                    onClick={e => { e.stopPropagation(); removeBackup(bi); }}
+                    className="w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-red-400 transition-colors text-xs shrink-0"
+                    title="Remove backup"
+                  >✕</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Add backup */}
+        {canAddBackup && (
+          <button
+            onClick={e => { e.stopPropagation(); addBackup(); }}
+            className="w-full py-1.5 rounded-lg border border-dashed border-border/50 text-muted-foreground/60 hover:border-primary/50 hover:text-primary text-xs font-mono transition-all"
+          >
+            + Add backup
+          </button>
+        )}
+
+        {!primary && backups.length === 0 && (
+          <p className="text-xs text-muted-foreground/40 font-mono">No primary set — slot is at-large</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -164,12 +302,12 @@ export default function BowlTieInsScreen() {
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {selectedBowls.map(({ bowl, tieIn }, idx) => {
-                const filled   = filledCount(tieIn);
+                const count    = totalAssigned(tieIn);
                 const isActive = idx === bowlIdx;
                 return (
                   <button
                     key={bowl.name}
-                    onClick={() => { setBowlIdx(idx); setSlotIdx(0); }}
+                    onClick={() => { setBowlIdx(idx); setSlotFocus(0); }}
                     className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all ${
                       isActive
                         ? 'border-ring bg-card shadow-sm'
@@ -179,8 +317,8 @@ export default function BowlTieInsScreen() {
                     <span className="text-xs font-mono text-muted-foreground w-5 shrink-0">#{idx + 1}</span>
                     <span className="font-mono font-bold text-xs flex-1 min-w-0 truncate">{bowl.name}</span>
                     <span className={`text-xs font-mono font-black ${
-                      filled === 4 ? 'text-green-400' : filled > 0 ? 'text-primary' : 'text-muted-foreground/30'
-                    }`}>{filled}/4</span>
+                      count > 0 ? 'text-primary' : 'text-muted-foreground/30'
+                    }`}>{count > 0 ? count : '—'}</span>
                   </button>
                 );
               })}
@@ -192,75 +330,21 @@ export default function BowlTieInsScreen() {
             <div className="px-5 py-4 border-b border-border bg-background/50 shrink-0">
               <h2 className="text-lg font-black font-mono text-primary">{focusedBowl?.bowl.name}</h2>
               <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                Empty slots = at-large (highest ranked eligible team fills in)
+                Empty slots = at-large. Backups fill in when the primary conf has no eligible team.
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              {(['SLOT 1', 'SLOT 2'] as const).map((group, gi) => (
-                <div key={group}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-mono font-black text-muted-foreground tracking-widest">{group}</span>
-                    <div className="flex-1 h-px bg-border/40" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {SLOTS.filter(s => s.group === group).map((slot, li) => {
-                      const realIdx = gi * 2 + li;
-                      const isFocused = slotIdx === realIdx;
-                      const current   = focusedBowl?.tieIn[slot.key] ?? '';
-                      const opts      = focusedBowl ? getOptions(bowlIdx, slot.key) : [];
-                      const overCap   = current && !opts.includes(current);
-                      return (
-                        <div
-                          key={slot.key}
-                          onClick={() => setSlotIdx(realIdx)}
-                          className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                            isFocused
-                              ? 'border-ring bg-card shadow-md'
-                              : 'border-border/40 bg-background/30 hover:border-border'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-mono font-bold text-muted-foreground">{slot.label}</span>
-                            {current && (
-                              <button
-                                onClick={e => { e.stopPropagation(); setBowlTieIn(bowlIdx, { [slot.key]: '' }); }}
-                                className="text-muted-foreground/50 hover:text-red-400 text-xs transition-colors"
-                                title="Clear"
-                              >✕</button>
-                            )}
-                          </div>
-                          <select
-                            value={current}
-                            onChange={e => { setSlotIdx(realIdx); setBowlTieIn(bowlIdx, { [slot.key]: e.target.value }); }}
-                            onClick={e => e.stopPropagation()}
-                            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:border-primary"
-                          >
-                            <option value="">— AT-LARGE —</option>
-                            {opts.map(name => (
-                              <option key={name} value={name}>{name}</option>
-                            ))}
-                            {overCap && (
-                              <option value={current}>{current} ⚠ over cap</option>
-                            )}
-                          </select>
-                          {isFocused && (
-                            <div className="mt-1.5 text-xs text-muted-foreground/50 font-mono">
-                              ◀ ▶ cycle · X clear
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {renderSlot(1)}
+              {renderSlot(2)}
 
               {/* Conference capacity tracker */}
               {confNames.length > 0 && (
                 <div>
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-mono font-black text-muted-foreground tracking-widest">CONF CAPACITY</span>
+                    <span className="text-xs font-mono font-black text-muted-foreground tracking-widest">
+                      CONF CAPACITY
+                    </span>
                     <div className="flex-1 h-px bg-border/40" />
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -273,7 +357,9 @@ export default function BowlTieInsScreen() {
                           key={name}
                           className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-background/50 border border-border/30"
                         >
-                          <span className="font-mono text-xs font-bold flex-1 truncate text-foreground/70">{name}</span>
+                          <span className="font-mono text-xs font-bold flex-1 truncate text-foreground/70">
+                            {name}
+                          </span>
                           <div className="flex items-center gap-1">
                             <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
                               <div

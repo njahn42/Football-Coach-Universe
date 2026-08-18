@@ -140,7 +140,7 @@ export interface OOCRivalry {
   teamB: string;
   /** Week slot in the season (1–15). */
   preferredSlot: number;
-  /** Play cadence: 1 = every year, 2 = every other year, etc. (1–4). */
+  /** Play cadence: 1 = every year, 2 = every other year, etc. (1–10). */
   cadence: number;
   /** Which year within the cadence to play (0 to cadence - 1). Auto-clamped. */
   offset: number;
@@ -149,10 +149,10 @@ export interface OOCRivalry {
 // ─── Bowl draft (Screen 8) ────────────────────────────────────────────────────
 
 export interface BowlTieIn {
-  slot1Primary?: string;  // conference name or '' for none
-  slot1Backup?: string;
+  slot1Primary?: string;   // conference name or '' for none
+  slot1Backups?: string[]; // additional fallback conferences for slot 1
   slot2Primary?: string;
-  slot2Backup?: string;
+  slot2Backups?: string[]; // additional fallback conferences for slot 2
 }
 
 export interface BowlSelection {

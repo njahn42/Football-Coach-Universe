@@ -465,8 +465,12 @@ export const useUniverseStore = create<UniverseState>()(
         const { selectedBowls } = get();
         const entry = selectedBowls[index];
         if (!entry) return;
+        const merged: BowlTieIn = { ...entry.tieIn, ...tieIn };
+        // When a primary is cleared, also clear its backup array
+        if ('slot1Primary' in tieIn && !tieIn.slot1Primary) merged.slot1Backups = [];
+        if ('slot2Primary' in tieIn && !tieIn.slot2Primary) merged.slot2Backups = [];
         const next = [...selectedBowls];
-        next[index] = { ...entry, tieIn: { ...entry.tieIn, ...tieIn } };
+        next[index] = { ...entry, tieIn: merged };
         set({ selectedBowls: next });
       },
 
@@ -475,7 +479,7 @@ export const useUniverseStore = create<UniverseState>()(
     }),
     {
       name: 'fccd-universe-draft',
-      version: 1,
+      version: 2,
       migrate: (persistedState: unknown, fromVersion: number) => {
         const s = (persistedState ?? {}) as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -488,6 +492,27 @@ export const useUniverseStore = create<UniverseState>()(
                 return { ...rest, teamA: teamAAbbr, teamB: teamBAbbr };
               }
               return r;
+            });
+          }
+        }
+        if (fromVersion < 2) {
+          // v1 → v2: convert slot1Backup/slot2Backup strings → slot1Backups/slot2Backups arrays
+          const bowls = s.selectedBowls;
+          if (Array.isArray(bowls)) {
+            s.selectedBowls = bowls.map((b: Record<string, unknown>) => {
+              const tieIn = (b.tieIn ?? {}) as Record<string, unknown>;
+              if ('slot1Backup' in tieIn || 'slot2Backup' in tieIn) {
+                const { slot1Backup, slot2Backup, ...rest } = tieIn;
+                return {
+                  ...b,
+                  tieIn: {
+                    ...rest,
+                    slot1Backups: slot1Backup ? [slot1Backup] : [],
+                    slot2Backups: slot2Backup ? [slot2Backup] : [],
+                  },
+                };
+              }
+              return b;
             });
           }
         }

@@ -68,6 +68,59 @@ export default function BowlDraftScreen() {
 
   const confNames = useMemo(() => conferences.map(c => c.name).filter(Boolean), [conferences]);
 
+  // Capacity enforcement — mirrors BowlTieInsScreen logic
+  const confTeamCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const conf of conferences) {
+      const count = conf.divisions
+        .flatMap(d => d.teams)
+        .filter((t): t is NonNullable<typeof t> => t != null).length;
+      if (conf.name) map.set(conf.name, count);
+    }
+    return map;
+  }, [conferences]);
+
+  const confTieInTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const { tieIn } of selectedBowls) {
+      const all = [
+        tieIn.slot1Primary,
+        ...(tieIn.slot1Backups ?? []),
+        tieIn.slot2Primary,
+        ...(tieIn.slot2Backups ?? []),
+      ];
+      for (const v of all) {
+        if (v) map.set(v, (map.get(v) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [selectedBowls]);
+
+  const getAvailableConfs = (bIdx: number, currentValue: string): string[] => {
+    const entry = selectedBowls[bIdx];
+    if (!entry) return confNames;
+    const { tieIn } = entry;
+    const usedInBowl = new Set<string>();
+    const allInBowl = [
+      tieIn.slot1Primary,
+      ...(tieIn.slot1Backups ?? []),
+      tieIn.slot2Primary,
+      ...(tieIn.slot2Backups ?? []),
+    ];
+    for (const v of allInBowl) {
+      if (v && v !== currentValue) usedInBowl.add(v);
+    }
+    return confNames.filter(name => {
+      if (usedInBowl.has(name)) return false;
+      const total    = confTieInTotals.get(name) ?? 0;
+      const selfUsed = currentValue === name ? 1 : 0;
+      const effective = total - selfUsed;
+      const capacity  = confTeamCounts.get(name) ?? 0;
+      if (effective >= capacity) return false;
+      return true;
+    });
+  };
+
   useGamepad((action) => {
     if (showControls) return;
     if (action === 'LB') { setActivePanel('left'); return; }
@@ -231,25 +284,33 @@ export default function BowlDraftScreen() {
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-1 border-t border-border/30 bg-background/30 grid grid-cols-2 gap-3">
                       {([
-                        ['slot1Primary',  'Slot 1 Primary'],
-                        ['slot1Backup',   'Slot 1 Backup'],
-                        ['slot2Primary',  'Slot 2 Primary'],
-                        ['slot2Backup',   'Slot 2 Backup'],
-                      ] as const).map(([key, label]) => (
-                        <div key={key}>
-                          <label className="text-xs font-mono text-muted-foreground block mb-1">{label}</label>
-                          <select
-                            value={tieIn[key] ?? ''}
-                            onChange={e => setBowlTieIn(idx, { [key]: e.target.value })}
-                            className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:border-primary"
-                          >
-                            <option value="">— None —</option>
-                            {confNames.map(name => (
-                              <option key={name} value={name}>{name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                        ['slot1Primary', 'Slot 1 Primary'],
+                        ['slot2Primary', 'Slot 2 Primary'],
+                      ] as [keyof typeof tieIn, string][]).map(([key, label]) => {
+                        const current = (tieIn[key] as string) ?? '';
+                        const opts = getAvailableConfs(idx, current);
+                        return (
+                          <div key={key}>
+                            <label className="text-xs font-mono text-muted-foreground block mb-1">{label}</label>
+                            <select
+                              value={current}
+                              onChange={e => setBowlTieIn(idx, { [key]: e.target.value })}
+                              className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:border-primary"
+                            >
+                              <option value="">— None —</option>
+                              {opts.map(name => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                              {current && !opts.includes(current) && (
+                                <option value={current}>{current} ⚠ over cap</option>
+                              )}
+                            </select>
+                          </div>
+                        );
+                      })}
+                      <div className="col-span-2 text-xs text-muted-foreground/50 font-mono pt-1">
+                        Add backups in the Bowl Tie-Ins step →
+                      </div>
                     </div>
                   )}
                 </div>

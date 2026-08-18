@@ -149,16 +149,17 @@ export function generateUniverseExport(
     };
 
     // Build first/second in the game's format:
-    //   single conf  → "ConfName"
-    //   primary + backup → ["Primary", "Backup"]
-    //   no conf set  → omit the key
-    const buildSlot = (primary?: string, backup?: string) => {
+    //   single conf          → "ConfName"
+    //   primary + backups    → ["Primary", "Backup1", ...]
+    //   no conf set          → omit the key
+    const buildSlot = (primary?: string, backups?: string[]) => {
       if (!primary) return undefined;
-      return backup ? [primary, backup] : primary;
+      const all = [primary, ...(backups?.filter(Boolean) ?? [])];
+      return all.length === 1 ? all[0] : all;
     };
 
-    const first  = buildSlot(tieIn.slot1Primary, tieIn.slot1Backup);
-    const second = buildSlot(tieIn.slot2Primary, tieIn.slot2Backup);
+    const first  = buildSlot(tieIn.slot1Primary, tieIn.slot1Backups);
+    const second = buildSlot(tieIn.slot2Primary, tieIn.slot2Backups);
 
     if (first !== undefined || second !== undefined) {
       const exportTieIn: Record<string, string | string[]> = {};
