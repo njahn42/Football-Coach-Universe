@@ -13,6 +13,7 @@ import type {
   BowlTieIn,
   ControlBinding,
 } from './types';
+import type { ImportPayload } from './utils/importUniverse';
 import { numDivisions, teamsPerDivision, MAX_DRAFTED_TEAMS, MAX_BOWL_SELECTIONS } from './types';
 
 // ─── Name/message suggestions ─────────────────────────────────────────────────
@@ -123,6 +124,9 @@ interface UniverseState {
   removeBowl: (index: number) => void;
   reorderBowl: (fromIndex: number, toIndex: number) => void;
   setBowlTieIn: (index: number, tieIn: Partial<BowlTieIn>) => void;
+
+  // Import
+  loadFromImport: (payload: ImportPayload) => void;
 
   // Reset
   resetDraft: () => void;
@@ -472,6 +476,27 @@ export const useUniverseStore = create<UniverseState>()(
         const next = [...selectedBowls];
         next[index] = { ...entry, tieIn: merged };
         set({ selectedBowls: next });
+      },
+
+      // ── Import ───────────────────────────────────────────────────────────────
+      loadFromImport: (payload) => {
+        set({
+          universeName:      payload.universeName,
+          startingYear:      payload.startingYear,
+          startingMessage:   payload.startingMessage,
+          nameIndex:         0,
+          messageIndex:      0,
+          conferences:       payload.conferences,
+          conferenceCount:   payload.conferenceCount,
+          rivalries:         payload.rivalries,
+          selectedBowls:     payload.selectedBowls,
+          oocRivalries:      payload.oocRivalries,
+          prestigeOverrides: payload.prestigeOverrides,
+          conferenceSetupIndex: 0,
+          lastAssignment:    null,
+          currentScreen:     'prestige-review',
+          showControls:      false,
+        });
       },
 
       // ── Reset ────────────────────────────────────────────────────────────────
