@@ -22,8 +22,10 @@ export default function BowlTieInsScreen() {
   const showControls       = useUniverseStore(s => s.showControls);
   const setControlBindings = useUniverseStore(s => s.setControlBindings);
 
-  const [bowlIdx,   setBowlIdx]   = useState(0);
-  const [slotFocus, setSlotFocus] = useState<0 | 1>(0); // 0 = SLOT 1, 1 = SLOT 2
+  const [bowlIdx,    setBowlIdx]    = useState(0);
+  const [slotFocus,  setSlotFocus]  = useState<0 | 1>(0); // 0 = SLOT 1, 1 = SLOT 2
+  // entryFocus: 0 = primary, 1..backups.length = backup[i-1], backups.length+1 = "+ Add backup"
+  const [entryFocus, setEntryFocus] = useState(0);
 
   const bowlCount   = selectedBowls.length;
   const focusedBowl = selectedBowls[bowlIdx] ?? null;
@@ -96,17 +98,31 @@ export default function BowlTieInsScreen() {
     setBowlIdx(i => Math.min(i, Math.max(0, bowlCount - 1)));
   }, [bowlCount]);
 
+  // Clamp entryFocus when the focused slot's entry list shrinks
+  useEffect(() => {
+    if (!focusedBowl) return;
+    const backupsKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Backups' : 'slot2Backups';
+    const primaryKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Primary' : 'slot2Primary';
+    const backups = (focusedBowl.tieIn[backupsKey] as string[] | undefined) ?? [];
+    const primary = (focusedBowl.tieIn[primaryKey] as string) ?? '';
+    const canAddBackup = !!primary && backups.length < MAX_BACKUPS;
+    const maxEntry = canAddBackup ? backups.length + 1 : backups.length;
+    setEntryFocus(e => Math.min(e, maxEntry));
+  }, [focusedBowl, slotFocus]);
+
   useEffect(() => {
     setControlBindings([
-      { action: 'LB',        label: 'Previous bowl' },
-      { action: 'RB',        label: 'Next bowl' },
-      { action: 'dpadUp',    label: 'Focus Slot 1' },
-      { action: 'dpadDown',  label: 'Focus Slot 2' },
-      { action: 'dpadLeft',  label: 'Cycle primary' },
-      { action: 'dpadRight', label: 'Cycle primary' },
-      { action: 'X',         label: 'Clear primary' },
-      { action: 'B',         label: 'Back to Bowl Draft' },
-      { action: 'Start',     label: 'Continue to Review' },
+      { action: 'LB',       label: 'Previous bowl' },
+      { action: 'RB',       label: 'Next bowl' },
+      { action: 'dpadUp',   label: 'Previous entry' },
+      { action: 'dpadDown', label: 'Next entry' },
+      { action: 'dpadLeft', label: 'Cycle conference ◀' },
+      { action: 'dpadRight',label: 'Cycle conference ▶' },
+      { action: 'A',        label: 'Add backup' },
+      { action: 'X',        label: 'Clear primary' },
+      { action: 'Y',        label: 'Remove backup' },
+      { action: 'B',        label: 'Back to Bowl Draft' },
+      { action: 'Start',    label: 'Continue to Review' },
     ]);
   }, [setControlBindings]);
 
@@ -114,31 +130,120 @@ export default function BowlTieInsScreen() {
     if (showControls) return;
     if (action === 'Start') { setScreen('review-export'); return; }
     if (action === 'B')     { setScreen('bowl-draft');    return; }
-    if (action === 'LB') { setBowlIdx(i => Math.max(0, i - 1)); setSlotFocus(0); return; }
-    if (action === 'RB') { setBowlIdx(i => Math.min(bowlCount - 1, i + 1)); setSlotFocus(0); return; }
-    if (action === 'dpadUp')   { setSlotFocus(0); return; }
-    if (action === 'dpadDown') { setSlotFocus(1); return; }
-
-    if (!focusedBowl) return;
-    const primaryKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Primary' : 'slot2Primary';
-    const current = focusedBowl.tieIn[primaryKey] as string ?? '';
-
-    if (action === 'X') {
-      setBowlTieIn(bowlIdx, { [primaryKey]: '' });
+    if (action === 'LB') {
+      setBowlIdx(i => Math.max(0, i - 1));
+      setSlotFocus(0);
+      setEntryFocus(0);
+      return;
+    }
+    if (action === 'RB') {
+      setBowlIdx(i => Math.min(bowlCount - 1, i + 1));
+      setSlotFocus(0);
+      setEntryFocus(0);
       return;
     }
 
-    if (action === 'dpadLeft' || action === 'dpadRight') {
-      const opts = getAvailableConfs(bowlIdx, current);
-      if (opts.length === 0) return;
-      const curIdx = current ? opts.indexOf(current) : -1;
-      if (action === 'dpadLeft') {
-        const next = curIdx <= 0 ? opts.length - 1 : curIdx - 1;
-        setBowlTieIn(bowlIdx, { [primaryKey]: opts[next] });
-      } else {
-        const next = curIdx >= opts.length - 1 ? 0 : curIdx + 1;
-        setBowlTieIn(bowlIdx, { [primaryKey]: opts[next] });
+    if (!focusedBowl) return;
+
+    // Derive current slot data
+    const primaryKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Primary' : 'slot2Primary';
+    const backupsKey: keyof BowlTieIn = slotFocus === 0 ? 'slot1Backups' : 'slot2Backups';
+    const primary = (focusedBowl.tieIn[primaryKey] as string) ?? '';
+    const backups = (focusedBowl.tieIn[backupsKey] as string[] | undefined) ?? [];
+    const canAddBackup = !!primary && backups.length < MAX_BACKUPS;
+    const addBackupEntryIdx = backups.length + 1;
+    const maxEntry = canAddBackup ? addBackupEntryIdx : backups.length;
+
+    // ── dpadUp / dpadDown: navigate entries within a slot, jump between slots at boundaries ──
+    if (action === 'dpadUp') {
+      if (entryFocus > 0) {
+        setEntryFocus(e => e - 1);
+      } else if (slotFocus === 1) {
+        // Jump to slot 1's last entry
+        const s1Backups = (focusedBowl.tieIn.slot1Backups as string[] | undefined) ?? [];
+        const s1Primary = (focusedBowl.tieIn.slot1Primary as string) ?? '';
+        const s1CanAdd  = !!s1Primary && s1Backups.length < MAX_BACKUPS;
+        const s1Max     = s1CanAdd ? s1Backups.length + 1 : s1Backups.length;
+        setSlotFocus(0);
+        setEntryFocus(s1Max);
       }
+      return;
+    }
+
+    if (action === 'dpadDown') {
+      if (entryFocus < maxEntry) {
+        setEntryFocus(e => e + 1);
+      } else if (slotFocus === 0) {
+        // Jump to slot 2's first entry
+        setSlotFocus(1);
+        setEntryFocus(0);
+      }
+      return;
+    }
+
+    // ── dpadLeft / dpadRight: cycle the conference for whichever entry is focused ──
+    if (action === 'dpadLeft' || action === 'dpadRight') {
+      if (entryFocus === 0) {
+        // Cycle primary
+        const opts = getAvailableConfs(bowlIdx, primary);
+        if (opts.length === 0) return;
+        const curIdx = primary ? opts.indexOf(primary) : -1;
+        if (action === 'dpadLeft') {
+          const next = curIdx <= 0 ? opts.length - 1 : curIdx - 1;
+          setBowlTieIn(bowlIdx, { [primaryKey]: opts[next] });
+        } else {
+          const next = curIdx >= opts.length - 1 ? 0 : curIdx + 1;
+          setBowlTieIn(bowlIdx, { [primaryKey]: opts[next] });
+        }
+      } else if (entryFocus <= backups.length) {
+        // Cycle backup[bi]
+        const bi = entryFocus - 1;
+        const currentBackup = backups[bi] ?? '';
+        const opts = getAvailableConfs(bowlIdx, currentBackup);
+        if (opts.length === 0) return;
+        const curIdx = currentBackup ? opts.indexOf(currentBackup) : -1;
+        const newBackups = [...backups];
+        if (action === 'dpadLeft') {
+          const next = curIdx <= 0 ? opts.length - 1 : curIdx - 1;
+          newBackups[bi] = opts[next];
+        } else {
+          const next = curIdx >= opts.length - 1 ? 0 : curIdx + 1;
+          newBackups[bi] = opts[next];
+        }
+        setBowlTieIn(bowlIdx, { [backupsKey]: newBackups });
+      }
+      // On the "+ Add backup" row, dpad L/R does nothing
+      return;
+    }
+
+    // ── X: clear primary (only when primary row is focused) ──
+    if (action === 'X') {
+      if (entryFocus === 0) {
+        setBowlTieIn(bowlIdx, { [primaryKey]: '' });
+      }
+      return;
+    }
+
+    // ── Y: remove the focused backup entry ──
+    if (action === 'Y') {
+      if (entryFocus > 0 && entryFocus <= backups.length) {
+        const bi = entryFocus - 1;
+        setBowlTieIn(bowlIdx, { [backupsKey]: backups.filter((_, i) => i !== bi) });
+        setEntryFocus(e => Math.max(0, e - 1));
+      }
+      return;
+    }
+
+    // ── A: add backup (only when "+ Add backup" row is focused) ──
+    if (action === 'A') {
+      if (entryFocus === addBackupEntryIdx && canAddBackup) {
+        const opts = getAvailableConfs(bowlIdx, '');
+        if (opts.length === 0) return;
+        setBowlTieIn(bowlIdx, { [backupsKey]: [...backups, opts[0]] });
+        // Advance focus to the newly added backup
+        setEntryFocus(backups.length + 1);
+      }
+      return;
     }
   });
 
@@ -154,6 +259,7 @@ export default function BowlTieInsScreen() {
 
     const primaryOpts  = getAvailableConfs(bowlIdx, primary);
     const canAddBackup = !!primary && backups.length < MAX_BACKUPS;
+    const addBackupEntryIdx = backups.length + 1;
 
     const addBackup = () => {
       const opts = getAvailableConfs(bowlIdx, '');
@@ -171,10 +277,13 @@ export default function BowlTieInsScreen() {
       setBowlTieIn(bowlIdx, { [backupsKey]: backups.filter((_, i) => i !== idx) });
     };
 
+    // Whether a given entry index is the gamepad-focused one
+    const isEntryFocused = (ei: number) => isFocused && entryFocus === ei;
+
     return (
       <div
         key={`slot-${slotNum}`}
-        onClick={() => setSlotFocus((slotNum - 1) as 0 | 1)}
+        onClick={() => { setSlotFocus((slotNum - 1) as 0 | 1); setEntryFocus(0); }}
         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
           isFocused
             ? 'border-ring bg-card shadow-md'
@@ -188,13 +297,22 @@ export default function BowlTieInsScreen() {
           </span>
           <div className="flex-1 h-px bg-border/40" />
           {isFocused && (
-            <span className="text-xs text-muted-foreground/50 font-mono">◀ ▶ cycle · X clear</span>
+            <span className="text-xs text-muted-foreground/50 font-mono">
+              ↑↓ entry · ◀▶ cycle · X clear · Y remove · A add
+            </span>
           )}
         </div>
 
         {/* Primary */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
+        <div
+          className={`mb-3 rounded-lg transition-all ${
+            isEntryFocused(0)
+              ? 'ring-2 ring-primary ring-offset-1 ring-offset-background'
+              : ''
+          }`}
+          onClick={e => { e.stopPropagation(); setSlotFocus((slotNum - 1) as 0 | 1); setEntryFocus(0); }}
+        >
+          <div className="flex items-center justify-between mb-1 px-0.5">
             <span className="text-xs font-mono text-muted-foreground">Primary</span>
             {primary && (
               <button
@@ -208,6 +326,7 @@ export default function BowlTieInsScreen() {
             value={primary}
             onChange={e => {
               setSlotFocus((slotNum - 1) as 0 | 1);
+              setEntryFocus(0);
               setBowlTieIn(bowlIdx, { [primaryKey]: e.target.value });
             }}
             onClick={e => e.stopPropagation()}
@@ -228,8 +347,17 @@ export default function BowlTieInsScreen() {
           <div className="space-y-2 mb-3">
             {backups.map((backup, bi) => {
               const backupOpts = getAvailableConfs(bowlIdx, backup);
+              const ei = bi + 1; // entry index for this backup
               return (
-                <div key={bi} className="flex items-center gap-2">
+                <div
+                  key={bi}
+                  className={`flex items-center gap-2 rounded-lg transition-all ${
+                    isEntryFocused(ei)
+                      ? 'ring-2 ring-primary ring-offset-1 ring-offset-background'
+                      : ''
+                  }`}
+                  onClick={e => { e.stopPropagation(); setSlotFocus((slotNum - 1) as 0 | 1); setEntryFocus(ei); }}
+                >
                   <span className="text-xs font-mono text-muted-foreground/60 w-16 shrink-0">
                     Backup {bi + 1}
                   </span>
@@ -262,7 +390,11 @@ export default function BowlTieInsScreen() {
         {canAddBackup && (
           <button
             onClick={e => { e.stopPropagation(); addBackup(); }}
-            className="w-full py-1.5 rounded-lg border border-dashed border-border/50 text-muted-foreground/60 hover:border-primary/50 hover:text-primary text-xs font-mono transition-all"
+            className={`w-full py-1.5 rounded-lg border border-dashed text-xs font-mono transition-all ${
+              isEntryFocused(addBackupEntryIdx)
+                ? 'border-primary text-primary bg-primary/5 ring-2 ring-primary ring-offset-1 ring-offset-background'
+                : 'border-border/50 text-muted-foreground/60 hover:border-primary/50 hover:text-primary'
+            }`}
           >
             + Add backup
           </button>
@@ -307,7 +439,7 @@ export default function BowlTieInsScreen() {
                 return (
                   <button
                     key={bowl.name}
-                    onClick={() => { setBowlIdx(idx); setSlotFocus(0); }}
+                    onClick={() => { setBowlIdx(idx); setSlotFocus(0); setEntryFocus(0); }}
                     className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all ${
                       isActive
                         ? 'border-ring bg-card shadow-sm'
