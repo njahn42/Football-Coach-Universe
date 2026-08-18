@@ -51,7 +51,7 @@ export default function ConferenceCountScreen() {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <ScreenHeader
         step={2}
-        totalSteps={9}
+        totalSteps={10}
         title="Conference Count"
         cta="How many conferences will your universe have?"
         requiredFields={[

@@ -299,7 +299,7 @@ export default function ConferenceSetupScreen() {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans relative">
       <ScreenHeader
         step={3}
-        totalSteps={9}
+        totalSteps={10}
         title="Conference Setup"
         cta="Configure each conference's name, city, and division layout"
         subtitle={`Conference ${confIndex + 1} of ${store.conferenceCount}`}

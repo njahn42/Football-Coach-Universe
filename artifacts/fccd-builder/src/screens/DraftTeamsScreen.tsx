@@ -289,7 +289,7 @@ export default function DraftTeamsScreen() {
     <div className="h-[100dvh] bg-background text-foreground flex flex-col font-sans overflow-hidden">
       <ScreenHeader
         step={4}
-        totalSteps={9}
+        totalSteps={10}
         title="Draft Teams"
         cta="Assign teams from the pool into conference slots"
         requiredFields={[{ label: `All conferences filled (${completeConfs} / ${conferences.length})`, done: canContinue }]}

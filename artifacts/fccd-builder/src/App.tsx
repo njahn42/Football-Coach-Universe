@@ -10,6 +10,7 @@ import PrestigeReviewScreen  from '@/screens/PrestigeReviewScreen';
 import RivalriesScreen       from '@/screens/RivalriesScreen';
 import OOCRivalriesScreen    from '@/screens/OOCRivalriesScreen';
 import BowlDraftScreen       from '@/screens/BowlDraftScreen';
+import BowlTieInsScreen      from '@/screens/BowlTieInsScreen';
 import ReviewExportScreen    from '@/screens/ReviewExportScreen';
 
 const SCREENS: Record<ScreenId, React.ComponentType> = {
@@ -21,6 +22,7 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
   'rivalries':        RivalriesScreen,
   'ooc-rivalries':    OOCRivalriesScreen,
   'bowl-draft':       BowlDraftScreen,
+  'bowl-tie-ins':     BowlTieInsScreen,
   'review-export':    ReviewExportScreen,
 };
 

@@ -72,7 +72,7 @@ export default function PrestigeReviewScreen() {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <ScreenHeader
         step={5}
-        totalSteps={9}
+        totalSteps={10}
         title="Prestige Review"
         cta="Review calculated prestige and adjust any overrides"
         onBack={() => setScreen('draft-teams')}

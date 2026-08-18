@@ -61,7 +61,7 @@ export default function UniverseInfoScreen() {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <ScreenHeader
         step={1}
-        totalSteps={9}
+        totalSteps={10}
         title="Universe Info"
         cta="Name your universe and set the starting season"
         requiredFields={requiredFields}

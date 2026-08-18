@@ -101,7 +101,7 @@ export default function ReviewExportScreen() {
 
   useGamepad((action) => {
     if (showControls) return;
-    if (action === 'B') { setScreen('bowl-draft'); return; }
+    if (action === 'B') { setScreen('bowl-tie-ins'); return; }
     if (action === 'dpadUp')   setValidFocus(i => Math.max(0, i - 1));
     else if (action === 'dpadDown') setValidFocus(i => Math.min(validationResults.length - 1, i + 1));
     else if (action === 'A') {
@@ -127,11 +127,11 @@ export default function ReviewExportScreen() {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans relative">
       {/* ── Header ── */}
       <ScreenHeader
-        step={9}
-        totalSteps={9}
+        step={10}
+        totalSteps={10}
         title="Review & Export"
         cta="Validate your universe and export the JSON file"
-        onBack={() => setScreen('bowl-draft')}
+        onBack={() => setScreen('bowl-tie-ins')}
       />
 
       {/* ── Main body ── */}

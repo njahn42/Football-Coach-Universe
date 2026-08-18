@@ -159,7 +159,7 @@ export default function RivalriesScreen() {
       {/* ── Header ── */}
       <ScreenHeader
         step={6}
-        totalSteps={9}
+        totalSteps={10}
         title="Rivalries"
         cta="Set protected in-conference rivalries"
         requiredFields={[{ label: 'All rivals assigned', done: allDone }]}

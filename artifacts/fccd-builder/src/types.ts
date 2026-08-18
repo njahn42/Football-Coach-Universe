@@ -223,6 +223,7 @@ export type ScreenId =
   | 'rivalries'
   | 'ooc-rivalries'
   | 'bowl-draft'
+  | 'bowl-tie-ins'
   | 'review-export';
 
 // ─── Input ────────────────────────────────────────────────────────────────────

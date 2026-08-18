@@ -139,7 +139,7 @@ export default function OOCRivalriesScreen() {
       {/* ── Header ── */}
       <ScreenHeader
         step={7}
-        totalSteps={9}
+        totalSteps={10}
         title="OOC Rivalries"
         cta="Add out-of-conference rivalry series (optional)"
         onBack={() => setScreen('rivalries')}

@@ -72,7 +72,7 @@ export default function BowlDraftScreen() {
     if (showControls) return;
     if (action === 'LB') { setActivePanel('left'); return; }
     if (action === 'RB') { setActivePanel('right'); return; }
-    if (action === 'Start') { setScreen('review-export'); return; }
+    if (action === 'Start') { setScreen('bowl-tie-ins'); return; }
 
     if (activePanel === 'left') {
       if (action === 'dpadUp')   setLeftFocus(i => Math.max(0, i - 1));
@@ -116,11 +116,11 @@ export default function BowlDraftScreen() {
       {/* ── Header ── */}
       <ScreenHeader
         step={8}
-        totalSteps={9}
+        totalSteps={10}
         title="Bowl Draft"
-        cta="Select bowl games and set conference tie-ins"
+        cta="Select bowl games for your universe"
         onBack={() => setScreen('ooc-rivalries')}
-        onContinue={() => setScreen('review-export')}
+        onContinue={() => setScreen('bowl-tie-ins')}
       />
 
       {/* ── Warning ── */}
