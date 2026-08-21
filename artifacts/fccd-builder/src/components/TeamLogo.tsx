@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { logoPath } from '@/utils/logoAssets';
 
 interface TeamLogoProps {
   name: string;
@@ -9,11 +10,16 @@ interface TeamLogoProps {
 }
 
 /**
- * Renders /logos/{name}.png if available, otherwise falls back to a
+ * Renders the canonical team image if available, otherwise falls back to a
  * small colored circle with the team's primary color.
  */
 export function TeamLogo({ name, primaryColor, size = 32, className = '' }: TeamLogoProps) {
   const [failed, setFailed] = useState(false);
+  const src = logoPath('teams', name);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
 
   if (failed) {
     return (
@@ -32,7 +38,7 @@ export function TeamLogo({ name, primaryColor, size = 32, className = '' }: Team
 
   return (
     <img
-      src={`/logos/${name}.png`}
+      src={src}
       alt={name}
       width={size}
       height={size}

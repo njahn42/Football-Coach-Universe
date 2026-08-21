@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { logoPath, logoZipPath } from './logoAssets';
 import type {
   ConferenceDraft,
   ConferencePrestigeInfo,
@@ -12,22 +13,7 @@ import type {
   ExportedBowlTieIn,
 } from '@/types';
 
-// ─── Filename normalization for logo paths ─────────────────────────────────────
-
-export function normalizeLogoName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[''`]/g, '')           // apostrophes / smart quotes
-    .replace(/&/g, 'and')             // ampersands
-    .replace(/[^a-z0-9 _-]/g, '')    // any remaining special chars
-    .replace(/\s+/g, '_')             // spaces → underscores
-    .replace(/_+/g, '_')             // collapse runs of underscores
-    .replace(/^_|_$/g, '');           // strip leading/trailing underscores
-}
-
-export function logoPath(type: 'teams' | 'conferences' | 'bowls', name: string): string {
-  return `/images/${type}/${normalizeLogoName(name)}.png`;
-}
+export { logoPath, normalizeLogoName } from './logoAssets';
 
 // ─── Universe filename ─────────────────────────────────────────────────────────
 
@@ -228,10 +214,9 @@ export async function downloadZIP(
   for (const conf of data.conferences) {
     for (const div of conf.divisions) {
       for (const team of div.teams) {
-        const name = normalizeLogoName(team.name);
         logoPaths.push({
-          fetchPath: `/images/teams/${name}.png`,
-          zipPath: `images/teams/${name}.png`,
+          fetchPath: logoPath('teams', team.name),
+          zipPath: logoZipPath('teams', team.name),
         });
       }
     }
@@ -239,19 +224,17 @@ export async function downloadZIP(
 
   // Conference logos
   for (const conf of data.conferences) {
-    const name = normalizeLogoName(conf.name);
     logoPaths.push({
-      fetchPath: `/images/conferences/${name}.png`,
-      zipPath: `images/conferences/${name}.png`,
+      fetchPath: logoPath('conferences', conf.name),
+      zipPath: logoZipPath('conferences', conf.name),
     });
   }
 
   // Bowl logos
   for (const bowl of data.bowlGames) {
-    const name = normalizeLogoName(bowl.name);
     logoPaths.push({
-      fetchPath: `/images/bowls/${name}.png`,
-      zipPath: `images/bowls/${name}.png`,
+      fetchPath: logoPath('bowls', bowl.name),
+      zipPath: logoZipPath('bowls', bowl.name),
     });
   }
 

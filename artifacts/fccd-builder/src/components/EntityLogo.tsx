@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { normalizeLogoName } from '@/utils/exportUniverse';
+import React, { useEffect, useState } from 'react';
+import { logoPath, type LogoCategory } from '@/utils/logoAssets';
 
 // ─── Placeholder SVG rendered when no logo file is found ─────────────────────
 
@@ -40,7 +40,7 @@ function ShieldPlaceholder({ className }: { className?: string }) {
 
 interface EntityLogoProps {
   /** Category determines the subfolder under /images/ */
-  type: 'teams' | 'conferences' | 'bowls';
+  type: LogoCategory;
   /** The entity's display name — normalized to a filename automatically. */
   name: string;
   className?: string;
@@ -55,6 +55,11 @@ interface EntityLogoProps {
  */
 export function EntityLogo({ type, name, className = 'w-8 h-8', alt }: EntityLogoProps) {
   const [errored, setErrored] = useState(false);
+  const src = logoPath(type, name);
+
+  useEffect(() => {
+    setErrored(false);
+  }, [src]);
 
   if (errored) {
     return (
@@ -63,8 +68,6 @@ export function EntityLogo({ type, name, className = 'w-8 h-8', alt }: EntityLog
       />
     );
   }
-
-  const src = `/images/${type}/${normalizeLogoName(name)}.png`;
 
   return (
     <img
