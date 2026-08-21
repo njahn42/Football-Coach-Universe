@@ -13,8 +13,14 @@ export default function RivalriesScreen() {
   const setScreen     = useUniverseStore(s => s.setScreen);
   const showControls  = useUniverseStore(s => s.showControls);
   const setControlBindings = useUniverseStore(s => s.setControlBindings);
+  const drawerNavConf    = useUniverseStore(s => s.drawerNavConf);
+  const setDrawerNavConf = useUniverseStore(s => s.setDrawerNavConf);
 
-  const [confIdx, setConfIdx] = useState(0);
+  const [confIdx, setConfIdx] = useState(() => {
+    // If the drawer navigated here targeting a specific conference, start there.
+    const nav = useUniverseStore.getState().drawerNavConf;
+    return nav != null ? Math.max(0, Math.min(nav, useUniverseStore.getState().conferences.length - 1)) : 0;
+  });
   const [divIdx,  setDivIdx]  = useState(0);
   const [teamIdx, setTeamIdx] = useState(0);
   // null = not in rival-select mode; string = abbr being previewed
@@ -53,6 +59,20 @@ export default function RivalriesScreen() {
   const rivalOptions: Team[] = focusedTeam
     ? (rowOptionsMap.get(focusedTeam.abbreviation) ?? [])
     : [];
+
+  // If the drawer set a nav target, clear it from the store (we already consumed it in useState).
+  // Also handle the case where drawerNavConf changes while we're already on this screen.
+  useEffect(() => {
+    if (drawerNavConf == null) return;
+    setConfIdx(Math.max(0, Math.min(drawerNavConf, conferences.length - 1)));
+    setDrawerNavConf(null);
+  }, [drawerNavConf, conferences.length, setDrawerNavConf]);
+
+  // Clear the store's drawerNavConf on mount (consumed by the useState initializer)
+  useEffect(() => {
+    setDrawerNavConf(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset team focus when conf/div changes
   useEffect(() => {

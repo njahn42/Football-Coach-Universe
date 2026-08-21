@@ -137,6 +137,14 @@ interface UniverseState {
   setControlBindings: (bindings: ControlBinding[]) => void;
   toggleControls: () => void;
   closeControls: () => void;
+
+  // ── Universe Drawer ───────────────────────────────────────────────────────────
+  showUniverseDrawer: boolean;
+  /** Conference index to jump to when navigating from the drawer. Cleared by the target screen. */
+  drawerNavConf: number | null;
+  toggleUniverseDrawer: () => void;
+  closeUniverseDrawer: () => void;
+  setDrawerNavConf: (index: number | null) => void;
 }
 
 // ─── Initial state ─────────────────────────────────────────────────────────────
@@ -150,6 +158,8 @@ const initialState = {
   conferenceSetupIndex: 0,
   showControls: false,
   controlBindings: [] as ControlBinding[],
+  showUniverseDrawer: false,
+  drawerNavConf: null as number | null,
   universeName: INITIAL_NAME,
   nameIndex: 0,
   startingYear: INITIAL_YEAR,
@@ -208,6 +218,11 @@ export const useUniverseStore = create<UniverseState>()(
       setControlBindings: (bindings) => set({ controlBindings: bindings }),
       toggleControls: () => set((s) => ({ showControls: !s.showControls })),
       closeControls: () => set({ showControls: false }),
+
+      // ── Universe Drawer ───────────────────────────────────────────────────────
+      toggleUniverseDrawer: () => set((s) => ({ showUniverseDrawer: !s.showUniverseDrawer })),
+      closeUniverseDrawer: () => set({ showUniverseDrawer: false }),
+      setDrawerNavConf: (index) => set({ drawerNavConf: index }),
 
       // ── Universe Info ────────────────────────────────────────────────────────
       setUniverseName: (name) => {

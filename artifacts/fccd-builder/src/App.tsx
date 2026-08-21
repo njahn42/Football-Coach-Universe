@@ -1,6 +1,7 @@
 import { useUniverseStore } from '@/store';
 import type { ScreenId } from '@/types';
 import { ControlsModal } from '@/components/ControlsModal';
+import { UniverseDrawer } from '@/components/UniverseDrawer';
 
 import UniverseInfoScreen    from '@/screens/UniverseInfoScreen';
 import ConferenceCountScreen from '@/screens/ConferenceCountScreen';
@@ -33,6 +34,7 @@ export default function App() {
     <>
       <Screen />
       <ControlsModal />
+      <UniverseDrawer />
     </>
   );
 }

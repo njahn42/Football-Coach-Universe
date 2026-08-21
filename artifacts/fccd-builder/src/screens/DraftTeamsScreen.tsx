@@ -21,6 +21,8 @@ export default function DraftTeamsScreen() {
   
   const getDraftedTeamAbbrsFn = useUniverseStore(s => s.getDraftedTeamAbbrs);
   const getTotalDraftedCountFn = useUniverseStore(s => s.getTotalDraftedCount);
+  const drawerNavConf  = useUniverseStore(s => s.drawerNavConf);
+  const setDrawerNavConf = useUniverseStore(s => s.setDrawerNavConf);
 
   // Subscribe to reactive data via hooks pattern to ensure freshness
   const draftedTeamAbbrs = useMemo(() => getDraftedTeamAbbrsFn(), [conferences, getDraftedTeamAbbrsFn]);
@@ -136,6 +138,8 @@ export default function DraftTeamsScreen() {
 
   const leftRefs = useRef<(HTMLElement | null)[]>([]);
   const rightRefs = useRef<(HTMLElement | null)[]>([]);
+  // Used to scroll to a conference after the drawer navigates here
+  const pendingScrollConf = useRef<number | null>(null);
 
   useEffect(() => {
     if (activePanel === 'left') {
@@ -146,6 +150,28 @@ export default function DraftTeamsScreen() {
       rightRefs.current[rightFocusIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   }, [activePanel, leftFocusIndex, rightFocusIndex]);
+
+  // When the drawer navigates to this screen targeting a specific conference,
+  // expand it, switch to the right panel, then scroll to it after the list rebuilds.
+  useEffect(() => {
+    if (drawerNavConf == null) return;
+    pendingScrollConf.current = drawerNavConf;
+    setExpandedConfs(prev => { const next = new Set(prev); next.add(drawerNavConf); return next; });
+    setActivePanel('right');
+    setDrawerNavConf(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerNavConf]);
+
+  // After rightFocusItems rebuilds, scroll to the pending conference header.
+  useEffect(() => {
+    if (pendingScrollConf.current == null) return;
+    const target = pendingScrollConf.current;
+    pendingScrollConf.current = null;
+    const idx = rightFocusItems.findIndex(
+      item => item.type === 'conf-header' && item.confIndex === target,
+    );
+    if (idx >= 0) setRightFocusIndex(idx);
+  }, [rightFocusItems]);
 
   useGamepad((action) => {
     if (showControls) return;
